@@ -1,6 +1,6 @@
 var cf = parent.cboxform;
 var cm = window;
-var domain = "http://24leech.us/auto/";
+var domain = "http://autocheck.googlecode.com/svn/";
 urlgroup = domain+"group.php?rand="+Math.random();
 urlcolor = domain+"color.js?rand="+Math.random();
 urlfilter = domain+"filter.js?rand="+Math.random();
