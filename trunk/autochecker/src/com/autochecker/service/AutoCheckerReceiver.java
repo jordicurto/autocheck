@@ -1,7 +1,7 @@
 package com.autochecker.service;
 
-import com.autochecker.datamodel.AutoCheckerDataSource;
-import com.autochecker.datamodel.FavLocation;
+import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.model.FavLocation;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;

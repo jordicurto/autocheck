@@ -12,9 +12,9 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.util.Log;
 
-import com.autochecker.datamodel.AutoCheckerDataSource;
-import com.autochecker.datamodel.Check;
-import com.autochecker.datamodel.FavLocation;
+import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.model.Check;
+import com.autochecker.data.model.FavLocation;
 
 public class AutoCheckerProximityReceiver extends BroadcastReceiver {
 

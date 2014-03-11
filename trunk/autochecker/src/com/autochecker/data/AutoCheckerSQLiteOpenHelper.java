@@ -1,4 +1,4 @@
-package com.autochecker.datamodel;
+package com.autochecker.data;
 
 import android.content.Context;
 import android.database.sqlite.SQLiteDatabase;

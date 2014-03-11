@@ -1,4 +1,4 @@
-package com.autochecker.datamodel;
+package com.autochecker.data.model;
 
 import java.io.Serializable;
 

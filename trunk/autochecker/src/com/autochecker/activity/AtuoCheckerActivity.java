@@ -1,4 +1,4 @@
-package com.autochecker;
+package com.autochecker.activity;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -20,9 +20,10 @@ import android.view.ViewGroup;
 import android.widget.ListView;
 import android.widget.SimpleAdapter;
 
-import com.autochecker.datamodel.AutoCheckerDataSource;
-import com.autochecker.datamodel.Check;
-import com.autochecker.datamodel.FavLocation;
+import com.autochecker.R;
+import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.model.Check;
+import com.autochecker.data.model.FavLocation;
 
 public class AtuoCheckerActivity extends Activity {
 

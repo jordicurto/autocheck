@@ -12,8 +12,8 @@ import android.os.Bundle;
 import android.os.IBinder;
 import android.util.Log;
 
-import com.autochecker.datamodel.AutoCheckerDataSource;
-import com.autochecker.datamodel.FavLocation;
+import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.model.FavLocation;
 
 public class AutoCheckerService extends Service {
 
