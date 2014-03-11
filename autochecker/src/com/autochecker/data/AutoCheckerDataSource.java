@@ -1,8 +1,11 @@
-package com.autochecker.datamodel;
+package com.autochecker.data;
 
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+
+import com.autochecker.data.model.Check;
+import com.autochecker.data.model.FavLocation;
 
 import android.content.ContentValues;
 import android.content.Context;
