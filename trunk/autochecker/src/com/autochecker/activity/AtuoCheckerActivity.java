@@ -22,8 +22,8 @@ import android.widget.SimpleAdapter;
 
 import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.model.Check;
-import com.autochecker.data.model.FavLocation;
+import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.data.model.WatchedLocation;
 
 public class AtuoCheckerActivity extends Activity {
 
@@ -52,14 +52,14 @@ public class AtuoCheckerActivity extends Activity {
 			}
 		}
 
-		List<FavLocation> locations = dataSource.getAllFavLocations();
+		List<WatchedLocation> locations = dataSource.getAllWatchedLocations();
 		List<Map<String, String>> list = new ArrayList<Map<String, String>>();
 
-		for (FavLocation location : locations) {
+		for (WatchedLocation location : locations) {
 			
-			List<Check> checks = dataSource.getAllChecks(location);
+			List<WatchedLocationRecord> checks = dataSource.getAllWatchedLocationRecord(location);
 
-			for (Check check : checks) {
+			for (WatchedLocationRecord check : checks) {
 				
 				Map<String, String> map = new HashMap<String, String>();
 				

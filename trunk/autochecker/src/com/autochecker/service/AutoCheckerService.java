@@ -13,14 +13,13 @@ import android.os.IBinder;
 import android.util.Log;
 
 import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.model.FavLocation;
+import com.autochecker.data.model.WatchedLocation;
 
 public class AutoCheckerService extends Service {
 
 	private final String TAG = getClass().getSimpleName();
 
 	private LocationManager locationManager = null;
-
 	private AutoCheckerDataSource dataSource = null;
 
 	private static final long LOCATION_INTERVAL = -1;
@@ -39,15 +38,15 @@ public class AutoCheckerService extends Service {
 
 		initialize();
 
-		List<FavLocation> list = dataSource.getAllFavLocations();
+		List<WatchedLocation> list = dataSource.getAllWatchedLocations();
 
-		for (FavLocation location : list) {
+		for (WatchedLocation location : list) {
 
 			addProximityAlert(location);
 		}
 	}
 
-	private void addProximityAlert(FavLocation location) {
+	private void addProximityAlert(WatchedLocation location) {
 
 		Log.d(TAG, "Adding proximity alert " + location.toString());
 
@@ -57,14 +56,14 @@ public class AutoCheckerService extends Service {
 
 	}
 
-	private PendingIntent getPendingIntent(FavLocation location) {
+	private PendingIntent getPendingIntent(WatchedLocation location) {
 
-		Bundle extras = new Bundle();
+		Bundle extra = new Bundle();
 
-		extras.putSerializable(LOCATION_ALERT, location);
+		extra.putInt(LOCATION_ALERT, location.getId());
 
 		Intent intent = new Intent(PROX_ALERT_INTENT);
-		intent.putExtra(PROX_ALERT_INTENT, extras);
+		intent.putExtra(PROX_ALERT_INTENT, extra);
 
 		return PendingIntent.getBroadcast(this, location.getId(), intent,
 				PendingIntent.FLAG_CANCEL_CURRENT);

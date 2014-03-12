@@ -2,24 +2,27 @@ package com.autochecker.data.model;
 
 import java.io.Serializable;
 
-import android.location.Location;
-
-public class FavLocation implements Serializable {
+public class WatchedLocation implements Serializable {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	
+	public static final int OUTSIDE_LOCATION = 0;
+	public static final int INSIDE_LOCATION = 1;
+	public static final int ENTERING_LOCATION = 2;	
+	public static final int LEAVING_LOCATION = 3;
+	
 	private int id;
 	private String name;
 	private double longitude;
 	private double latitude;
 	private float accuracy;
-	private boolean overThere;
+	private int status;
 
-	public FavLocation() {
-
+	public WatchedLocation() {
+		
 	}
 
 	public int getId() {
@@ -54,14 +57,6 @@ public class FavLocation implements Serializable {
 		this.latitude = latitude;
 	}
 
-	public boolean isOverThere() {
-		return overThere;
-	}
-
-	public void setOverThere(boolean overThere) {
-		this.overThere = overThere;
-	}
-
 	public float getAccuracy() {
 		return accuracy;
 	}
@@ -70,13 +65,16 @@ public class FavLocation implements Serializable {
 		this.accuracy = accuracy;
 	}
 
-	public float distanceTo(Location location) {
-		float[] results = new float[1];
-		Location.distanceBetween(latitude, longitude, location.getLatitude(), location.getLongitude(), results);
-		return results[0];
+	public int getStatus() {
+		return status;
+	}
+
+	public void setStatus(int status) {
+		this.status = status;
 	}
 	
 	public String toString() {
 		return "(" + name + ") Lat: " + latitude + ", Long: " + longitude + ", Accuracy: " + accuracy;
 	}
+
 }

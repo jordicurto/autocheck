@@ -8,7 +8,7 @@ import android.util.Log;
 public class AutoCheckerSQLiteOpenHelper extends SQLiteOpenHelper {
 
 	public static final String TABLE_LOCATIONS_NAME = "locations";
-	public static final String TABLE_CHECKS_NAME = "checks";
+	public static final String TABLE_RECORDS_NAME = "checks";
 
 	public static final String COLUMN_ID = "id";
 	public static final int COLUMN_ID_INDEX = 0;
@@ -18,10 +18,10 @@ public class AutoCheckerSQLiteOpenHelper extends SQLiteOpenHelper {
 	public static final int COLUMN_LATITUDE_INDEX = 2;
 	public static final String COLUMN_LONGITUDE = "long";
 	public static final int COLUMN_LONGITUDE_INDEX = 3;
-	public static final String COLUMN_ACCURACY = "acc";
-	public static final int COLUMN_ACCURACY_INDEX = 4;
-	public static final String COLUMN_OVER_THERE = "over";
-	public static final int COLUMN_OVER_THERE_INDEX = 5;
+	public static final String COLUMN_RADIUS = "acc";
+	public static final int COLUMN_RADIUS_INDEX = 4;
+	public static final String COLUMN_STATUS = "over";
+	public static final int COLUMN_STATUS_INDEX = 5;
 
 	public static final String COLUMN_LOCATION_ID = "loc";
 	public static final int COLUMN_LOCATION_ID_INDEX = 1;
@@ -31,10 +31,10 @@ public class AutoCheckerSQLiteOpenHelper extends SQLiteOpenHelper {
 	public static final int COLUMN_CHECKOUT_INDEX = 3;
 
 	public static final String[] COLUMNS_TABLE_LOCATIONS = { COLUMN_ID,
-			COLUMN_NAME, COLUMN_LATITUDE, COLUMN_LONGITUDE, COLUMN_ACCURACY,
-			COLUMN_OVER_THERE };
+			COLUMN_NAME, COLUMN_LATITUDE, COLUMN_LONGITUDE, COLUMN_RADIUS,
+			COLUMN_STATUS };
 
-	public static final String[] COLUMNS_TABLE_CHECKS = { COLUMN_ID,
+	public static final String[] COLUMNS_TABLE_RECORDS = { COLUMN_ID,
 			COLUMN_LOCATION_ID, COLUMN_CHECKIN, COLUMN_CHECKOUT };
 
 	private static final String DATABASE_NAME = "autocheck.db";
@@ -45,12 +45,12 @@ public class AutoCheckerSQLiteOpenHelper extends SQLiteOpenHelper {
 			+ TABLE_LOCATIONS_NAME + "(" + COLUMN_ID
 			+ " integer primary key autoincrement, " + COLUMN_NAME
 			+ " string, " + COLUMN_LATITUDE + " real, " + COLUMN_LONGITUDE
-			+ " real , " + COLUMN_ACCURACY + " real, " + COLUMN_OVER_THERE
+			+ " real , " + COLUMN_RADIUS + " real, " + COLUMN_STATUS
 			+ " integer);";
 
 	// Database creation sql statement
-	private static final String CREATE_TABLE_CHECKS = "create table "
-			+ TABLE_CHECKS_NAME + "(" + COLUMN_ID
+	private static final String CREATE_TABLE_RECORDS = "create table "
+			+ TABLE_RECORDS_NAME + "(" + COLUMN_ID
 			+ " integer primary key autoincrement, " + COLUMN_LOCATION_ID
 			+ " integer references " + TABLE_LOCATIONS_NAME + " (" + COLUMN_ID
 			+ "), " + COLUMN_CHECKIN + " integer , " + COLUMN_CHECKOUT
@@ -63,7 +63,7 @@ public class AutoCheckerSQLiteOpenHelper extends SQLiteOpenHelper {
 	@Override
 	public void onCreate(SQLiteDatabase db) {
 		db.execSQL(CREATE_TABLE_LOCATIONS);
-		db.execSQL(CREATE_TABLE_CHECKS);
+		db.execSQL(CREATE_TABLE_RECORDS);
 	}
 
 	@Override
@@ -71,7 +71,7 @@ public class AutoCheckerSQLiteOpenHelper extends SQLiteOpenHelper {
 		Log.w(AutoCheckerSQLiteOpenHelper.class.getName(),
 				"Upgrading database from version " + oldVersion + " to "
 						+ newVersion + ", which will destroy all old data");
-		db.execSQL("drop table if exists " + CREATE_TABLE_CHECKS);
+		db.execSQL("drop table if exists " + CREATE_TABLE_RECORDS);
 		db.execSQL("drop table if exists " + CREATE_TABLE_LOCATIONS);
 		onCreate(db);
 	}
