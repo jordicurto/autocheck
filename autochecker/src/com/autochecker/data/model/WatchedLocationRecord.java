@@ -3,14 +3,14 @@ package com.autochecker.data.model;
 import java.io.Serializable;
 import java.util.Date;
 
-public class Check implements Serializable {
+public class WatchedLocationRecord implements Serializable {
 
 	/**
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
 	private int id;
-	private FavLocation location;
+	private WatchedLocation location;
 	private Date checkIn;
 	private Date checkOut;
 
@@ -22,11 +22,11 @@ public class Check implements Serializable {
 		this.id = id;
 	}
 
-	public FavLocation getLocation() {
+	public WatchedLocation getLocation() {
 		return location;
 	}
 
-	public void setLocation(FavLocation location) {
+	public void setLocation(WatchedLocation location) {
 		this.location = location;
 	}
 

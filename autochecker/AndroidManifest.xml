@@ -32,14 +32,9 @@
             android:name="com.autochecker.service.AutoCheckerService"
             android:process=":autocheckerservice" />
 
-        <receiver android:name="com.autochecker.service.AutoCheckerProximityReceiver"  android:enabled="true" android:exported="false">
+        <receiver android:name="com.autochecker.service.AutoCheckerReceiver"  android:enabled="true" android:exported="false">
             <intent-filter>
                 <action android:name="ACTION_PROXIMITY_ALERT" />
-            </intent-filter>
-        </receiver>
-        
-       <receiver android:name="com.autochecker.service.AutoCheckerReceiver" android:enabled="true" android:exported="false">
-           <intent-filter>
                <action android:name="android.intent.action.BOOT_COMPLETED"/>
            </intent-filter>
        </receiver>
