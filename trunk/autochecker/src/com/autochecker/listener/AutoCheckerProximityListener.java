@@ -7,12 +7,15 @@ import android.database.SQLException;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.util.Log;
 
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.exception.NoWatchedLocationFoundException;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.service.AutoCheckerService;
 
 public class AutoCheckerProximityListener implements IProximityListener {
 
@@ -23,9 +26,10 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 	private String TAG = getClass().getSimpleName();
 
-	private static AutoCheckerDataSource dataSource = null;
+	private static AutoCheckerDataSource dataSource;
+	private static Messenger messenger;
 
-	private static Handler handler = new Handler() {
+	private static Handler chgLocHandler = new Handler() {
 
 		private String TAG = getClass().getSimpleName();
 
@@ -49,6 +53,8 @@ public class AutoCheckerProximityListener implements IProximityListener {
 					record.setCheckOut(null);
 					record.setLocation(location);
 					dataSource.insertRecord(record);
+					
+					notifyService();
 
 					Log.i(TAG, "User has entered to " + location.getName());
 
@@ -73,6 +79,8 @@ public class AutoCheckerProximityListener implements IProximityListener {
 							.getUnCheckedWatchedLocationRecord(location);
 					record.setCheckOut(new Date(bundle.getLong(TIME_KEY)));
 					dataSource.updateRecord(record);
+					
+					notifyService();
 
 					Log.i(TAG, "User has left " + location.getName());
 
@@ -88,10 +96,21 @@ public class AutoCheckerProximityListener implements IProximityListener {
 				
 				break;
 			}
+		}
+
+		private void notifyService() {
+			
+			Message msg = Message.obtain(null, AutoCheckerService.MSG_PROX_ALERT_DONE);
+			try {
+				messenger.send(msg);
+			} catch (RemoteException e) {
+				Log.e(TAG, "Can't send proximity alert done message to service", e);
+			}
+			
 		};
 	};
 
-	public AutoCheckerProximityListener(Context context) {
+	public AutoCheckerProximityListener(Context context, Messenger mService) {
 
 		dataSource = new AutoCheckerDataSource(context);
 		try {
@@ -99,6 +118,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);
 		}
+		messenger = mService;
 	}
 
 	@Override
@@ -127,7 +147,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 				msg.setData(bundle);
 
-				handler.sendMessageDelayed(msg, DELAY_MILLIS);
+				chgLocHandler.sendMessageDelayed(msg, DELAY_MILLIS);
 
 				Log.d(TAG, "Queued an enter event");
 
@@ -135,7 +155,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 			case WatchedLocation.LEAVING_LOCATION:
 
-				handler.removeMessages(WatchedLocation.OUTSIDE_LOCATION);
+				chgLocHandler.removeMessages(WatchedLocation.OUTSIDE_LOCATION);
 
 				location.setStatus(WatchedLocation.INSIDE_LOCATION);
 				dataSource.updateWatchedLocation(location);
@@ -184,7 +204,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 				msg.setData(bundle);
 
-				handler.sendMessageDelayed(msg, DELAY_MILLIS);
+				chgLocHandler.sendMessageDelayed(msg, DELAY_MILLIS);
 
 				Log.d(TAG, "Queued a leave event");
 
@@ -192,7 +212,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 			case WatchedLocation.ENTERING_LOCATION:
 
-				handler.removeMessages(WatchedLocation.INSIDE_LOCATION);
+				chgLocHandler.removeMessages(WatchedLocation.INSIDE_LOCATION);
 
 				location.setStatus(WatchedLocation.OUTSIDE_LOCATION);
 				dataSource.updateWatchedLocation(location);
