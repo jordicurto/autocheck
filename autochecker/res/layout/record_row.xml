@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" 
+    android:layout_margin="10dp">
+
+    <TextView
+        android:id="@+id/record_duration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/first_last_record"
+        android:layout_alignParentRight="true"
+        android:layout_alignParentTop="true"
+        android:gravity="center_vertical"
+        android:text="@string/record_duration"
+        android:textSize="@dimen/total_hours_dim"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/week_day"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginTop="2dp"
+        android:layout_toLeftOf="@+id/record_duration"
+        android:text="@string/week_day"
+        android:textSize="@dimen/week_day_dim" />
+
+    <TextView
+        android:id="@+id/first_last_record"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_below="@+id/week_day"
+        android:layout_toLeftOf="@+id/record_duration"
+        android:text="@string/first_last_day_record"
+        android:textSize="@dimen/hours_record_dim" />
+
+</RelativeLayout>

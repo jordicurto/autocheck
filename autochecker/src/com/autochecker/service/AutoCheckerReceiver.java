@@ -20,8 +20,6 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 	
 	private final String TAG = getClass().getSimpleName();
 
-	private Messenger messengerService;
-
 	@Override
 	public void onReceive(Context context, Intent intent) {
 		
@@ -40,7 +38,8 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 			Log.d(TAG, "Proximity alert received");
 				
 			if (listener == null) {
-				listener = new AutoCheckerProximityListener(context);
+				IBinder binder = peekService(context, new Intent(context, AutoCheckerService.class));
+				listener = new AutoCheckerProximityListener(context, new Messenger(binder));
 			}
 			
 			long time = System.currentTimeMillis();
@@ -55,18 +54,6 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 				listener.onEnter(locationId, time);
 			} else {
 				listener.onLeave(locationId, time);
-			}
-			
-			if (messengerService == null) {
-				IBinder binder = peekService(context, new Intent(context, AutoCheckerService.class));
-				messengerService = new Messenger(binder);
-			}
-			
-			Message msg = Message.obtain(null, AutoCheckerService.MSG_PROX_ALERT_DONE);
-			try {
-				messengerService.send(msg);
-			} catch (RemoteException e) {
-				Log.e(TAG, "Can't send proximity alert done message to service", e);
 			}
 			
 		} else {
