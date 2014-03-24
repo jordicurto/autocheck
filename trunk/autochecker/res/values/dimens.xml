@@ -1,10 +1,11 @@
 <resources>
 
     <!-- Default screen margins, per the Android Design guidelines. -->
-    <dimen name="activity_horizontal_margin">16dp</dimen>
-    <dimen name="activity_vertical_margin">16dp</dimen>
+    <dimen name="activity_horizontal_margin">10dp</dimen>
+    <dimen name="activity_vertical_margin">10dp</dimen>
     <dimen name="week_day_dim">12pt</dimen>
     <dimen name="hours_record_dim">8pt</dimen>
     <dimen name="total_hours_dim">18pt</dimen>
+    <dimen name="total_text_dim">11pt</dimen>
 
 </resources>

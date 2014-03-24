@@ -2,7 +2,7 @@
 <RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
     android:layout_width="match_parent"
     android:layout_height="match_parent" 
-    android:layout_margin="10dp">
+    android:padding="5dp">
 
     <TextView
         android:id="@+id/record_duration"
@@ -14,7 +14,8 @@
         android:gravity="center_vertical"
         android:text="@string/record_duration"
         android:textSize="@dimen/total_hours_dim"
-        android:textStyle="bold" />
+        android:textStyle="bold" 
+        android:textColor="@android:color/holo_green_dark"/>
 
     <TextView
         android:id="@+id/week_day"
@@ -22,10 +23,10 @@
         android:layout_height="wrap_content"
         android:layout_alignParentLeft="true"
         android:layout_alignParentTop="true"
-        android:layout_marginTop="2dp"
         android:layout_toLeftOf="@+id/record_duration"
         android:text="@string/week_day"
-        android:textSize="@dimen/week_day_dim" />
+        android:textSize="@dimen/week_day_dim" 
+        android:textColor="@android:color/holo_blue_dark" />
 
     <TextView
         android:id="@+id/first_last_record"
