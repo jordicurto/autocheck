@@ -52,13 +52,13 @@ import com.autochecker.util.DateUtils;
 public class AtuoCheckerActivity extends Activity {
 
 	private final String TAG = getClass().getSimpleName();
-
+ 
 	public static final SimpleDateFormat timeFormat = new SimpleDateFormat(
 			"HH:mm", Locale.getDefault());
 	public static final SimpleDateFormat dayFormat = new SimpleDateFormat(
 			"cccc, d", Locale.getDefault());
 	public static final SimpleDateFormat weekFormat = new SimpleDateFormat(
-			"MMMM, d", Locale.getDefault());
+			"d MMMM", Locale.getDefault());
 
 	private static AutoCheckerDataSource dataSource = null;
 	private boolean serviceBound = false;

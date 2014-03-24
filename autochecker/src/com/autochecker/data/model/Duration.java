@@ -25,6 +25,11 @@ public class Duration {
 		this.milliseconds = milliseconds;
 	}
 	
+	public Duration add(Duration duration) {
+		milliseconds += duration.getMilliseconds();
+		return this;
+	}
+	
 	public String toString() {
 		int hours = (int) (milliseconds / HOURS_PER_MILLISECOND);
 		int minutes = (int) (milliseconds / MINS_PER_MILLISECOND) % MINS_PER_HOUR;

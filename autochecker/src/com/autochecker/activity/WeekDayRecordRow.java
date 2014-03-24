@@ -15,22 +15,15 @@ public class WeekDayRecordRow {
 
 	public WeekDayRecordRow(Date weekDay, List<WatchedLocationRecord> records) {
 
-		long dayWork = 0;
+		this.weekDay = weekDay;
+		
+		firstCheckIn = records.get(0).getCheckIn();
+		lastCheckOut = records.get(records.size() - 1).getCheckOut();
+		duration = new Duration(0);
 
 		for (WatchedLocationRecord record : records) {
-			if (record.isActive()) {
-				dayWork += (System.currentTimeMillis() - record.getCheckIn()
-						.getTime());
-			} else {
-				dayWork += (record.getCheckOut().getTime() - record
-						.getCheckIn().getTime());
-			}
+			duration.add(record.calculateDuration());
 		}
-
-		this.weekDay = weekDay;
-		this.firstCheckIn = records.get(0).getCheckIn();
-		this.lastCheckOut = records.get(records.size() - 1).getCheckOut();
-		this.duration = new Duration(dayWork);
 	}
 
 	public Date getWeekDay() {
@@ -54,10 +47,10 @@ public class WeekDayRecordRow {
 	}
 
 	public String getFirstLastCheckString() {
-		return AtuoCheckerActivity.timeFormat.format(firstCheckIn)
+		return "(" + AtuoCheckerActivity.timeFormat.format(firstCheckIn)
 				+ " - "
 				+ (lastCheckOut != null ? AtuoCheckerActivity.timeFormat
-						.format(lastCheckOut) : "");
+						.format(lastCheckOut) : "") + ")";
 	}
 
 	public String getDurationString() {

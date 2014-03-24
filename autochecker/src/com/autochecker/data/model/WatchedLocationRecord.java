@@ -9,6 +9,7 @@ public class WatchedLocationRecord implements Serializable {
 	 * 
 	 */
 	private static final long serialVersionUID = 1L;
+	
 	private int id;
 	private WatchedLocation location;
 	private Date checkIn;
@@ -48,5 +49,17 @@ public class WatchedLocationRecord implements Serializable {
 
 	public boolean isActive() {
 		return checkIn != null && checkOut == null;
+	}
+	
+	public Duration calculateDuration() {
+		long checkDuration = 0;
+		if (checkIn != null) {
+			if (checkOut == null) {
+				checkDuration = (System.currentTimeMillis() - checkIn.getTime());
+			} else {
+				checkDuration = (checkOut.getTime() - checkIn.getTime());
+			}
+		}
+		return new Duration(checkDuration);
 	}
 }
