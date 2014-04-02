@@ -20,13 +20,12 @@ import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.model.WatchedLocation;
 
 public class AutoCheckerService extends Service {
-	
+
 	public static final String LOCATION_ALERT = "ALERT_LOCATION";
 	public static final String PROX_ALERT_INTENT = "ACTION_PROXIMITY_ALERT";
-	
+
 	public static final int MSG_REGISTER_CLIENT = 1;
 	public static final int MSG_UNREGISTER_CLIENT = 2;
-	
 	public static final int MSG_PROX_ALERT_DONE = 3;
 
 	private final String TAG = getClass().getSimpleName();
@@ -35,36 +34,41 @@ public class AutoCheckerService extends Service {
 	private AutoCheckerDataSource dataSource;
 
 	private static final long LOCATION_INTERVAL = -1;
-	
-	private class IncomingHandler extends Handler {
+
+	private static class IncomingHandler extends Handler {
+
+		private final String TAG = getClass().getSimpleName();
 
 		@Override
 		public void handleMessage(Message msg) {
-			
-            switch (msg.what) {
-            case MSG_REGISTER_CLIENT:
-            	replyMessenger = msg.replyTo;
-            	break;
-            case MSG_UNREGISTER_CLIENT:
-            	replyMessenger = null;
-            	break;
-            case MSG_PROX_ALERT_DONE:
-            	if (replyMessenger != null) {
-            		try {
+
+			switch (msg.what) {
+			case MSG_REGISTER_CLIENT:
+				replyMessenger = msg.replyTo;
+				break;
+			case MSG_UNREGISTER_CLIENT:
+				replyMessenger = null;
+				break;
+			case MSG_PROX_ALERT_DONE:
+				if (replyMessenger != null) {
+					try {
 						replyMessenger.send(msg);
 					} catch (RemoteException e) {
-						Log.e(TAG, "Can't send proximity alert done message to service", e);
+						Log.e(TAG,
+								"Can't send proximity alert done message to activity",
+								e);
 					}
-            	}
-            default:
-            	super.handleMessage(msg);
-            }
+				}
+				break;
+			default:
+				super.handleMessage(msg);
+			}
 		}
 	}
-	
+
 	private final Messenger messenger = new Messenger(new IncomingHandler());
-	
-	private Messenger replyMessenger;
+
+	private static Messenger replyMessenger;
 
 	@Override
 	public IBinder onBind(Intent intent) {
@@ -73,31 +77,45 @@ public class AutoCheckerService extends Service {
 
 	@Override
 	public void onCreate() {
-		
-		Log.i(TAG, "onCreate");
 
-		initialize();
+		try {
 
-		List<WatchedLocation> list = dataSource.getAllWatchedLocations();
+			Log.i(TAG, "onCreate");
 
-		for (WatchedLocation location : list) {
+			if (dataSource == null) {
+				dataSource = new AutoCheckerDataSource(getApplicationContext());
+			}
 
-			addProximityAlert(location);
+			if (locationManager == null) {
+				locationManager = (LocationManager) this
+						.getSystemService(Context.LOCATION_SERVICE);
+			}
+
+			dataSource.open();
+
+			List<WatchedLocation> list = dataSource.getAllWatchedLocations();
+
+			for (WatchedLocation location : list) {
+				addProximityAlert(location);
+			}
+
+			dataSource.close();
+
+		} catch (SQLException e) {
+			Log.e(TAG, "DataSource open exception", e);
 		}
 	}
-	
+
 	@Override
-	public void onDestroy() {
-		
-		dataSource.close();
-		
-		super.onDestroy();
+	public int onStartCommand(Intent intent, int flags, int startId) {
+		Log.d(TAG, "OnStartCommand received");
+		return START_STICKY;
 	}
 
 	private void addProximityAlert(WatchedLocation location) {
 
 		Log.d(TAG, "Adding proximity alert " + location.toString());
-		
+
 		locationManager.addProximityAlert(location.getLatitude(),
 				location.getLongitude(), location.getAccuracy(),
 				LOCATION_INTERVAL, getPendingIntent(location));
@@ -115,24 +133,5 @@ public class AutoCheckerService extends Service {
 
 		return PendingIntent.getBroadcast(this, location.getId(), intent,
 				PendingIntent.FLAG_CANCEL_CURRENT);
-	}
-
-	private void initialize() {
-
-		Log.d(TAG, "initialize");
-
-		if (dataSource == null) {
-			dataSource = new AutoCheckerDataSource(getApplicationContext());
-			try {
-				dataSource.open();
-			} catch (SQLException e) {
-				Log.e(TAG, "DataSource open exception", e);
-			}
-		}
-
-		if (locationManager == null) {
-			locationManager = (LocationManager) this
-					.getSystemService(Context.LOCATION_SERVICE);
-		}
 	}
 }

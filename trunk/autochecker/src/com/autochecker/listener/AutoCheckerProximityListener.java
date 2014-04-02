@@ -19,7 +19,7 @@ import com.autochecker.service.AutoCheckerService;
 
 public class AutoCheckerProximityListener implements IProximityListener {
 
-	private static final long DELAY_MILLIS = 1000;
+	private static final long DELAY_MILLIS = 90000;
 
 	private static final String LOCATION_KEY = "location";
 	private static final String TIME_KEY = "time";
@@ -33,91 +33,106 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 		private String TAG = getClass().getSimpleName();
 
+		private void processEndEnterEvent(int locationId, long time) {
+
+			try {
+
+				dataSource.open();
+
+				WatchedLocation location = dataSource.getWatchedLocation(locationId);
+				location.setStatus(WatchedLocation.INSIDE_LOCATION);
+				dataSource.updateWatchedLocation(location);
+
+				WatchedLocationRecord record = new WatchedLocationRecord();
+				record.setCheckIn(new Date(time));
+				record.setCheckOut(null);
+				record.setLocation(location);
+				dataSource.insertRecord(record);
+
+				notifyService();
+
+				Log.i(TAG, "User has entered to " + location.getName());
+
+				dataSource.close();
+
+			} catch (NoWatchedLocationFoundException e) {
+				Log.e(TAG, "Watched Location doesn't exist ", e);
+			} catch (SQLException e) {
+				Log.e(TAG, "DataSource open exception", e);
+			}
+		}
+
+		private void processEndLeaveEvent(int locationId, long time) {
+
+			try {
+
+				dataSource.open();
+
+				WatchedLocation location = dataSource.getWatchedLocation(locationId);
+				location.setStatus(WatchedLocation.OUTSIDE_LOCATION);
+				dataSource.updateWatchedLocation(location);
+
+				WatchedLocationRecord record = dataSource
+						.getUnCheckedWatchedLocationRecord(location);
+				record.setCheckOut(new Date(time));
+				dataSource.updateRecord(record);
+
+				notifyService();
+
+				Log.i(TAG, "User has left " + location.getName());
+
+				dataSource.close();
+
+			} catch (NoWatchedLocationFoundException e) {
+				Log.e(TAG, "Watched Location doesn't exist ", e);
+			} catch (SQLException e) {
+				Log.e(TAG, "DataSource open exception", e);
+			}
+		}
+
 		public void handleMessage(Message msg) {
+			
+			Bundle bundle = msg.getData();
+			
+			int locationId = bundle.getInt(LOCATION_KEY);
+			long time = bundle.getLong(TIME_KEY);
 
 			switch (msg.what) {
 
 			case WatchedLocation.INSIDE_LOCATION:
 
-				try {
-
-					Bundle bundle = msg.getData();
-
-					WatchedLocation location = dataSource
-							.getWatchedLocation(bundle.getInt(LOCATION_KEY));
-					location.setStatus(WatchedLocation.INSIDE_LOCATION);
-					dataSource.updateWatchedLocation(location);
-
-					WatchedLocationRecord record = new WatchedLocationRecord();
-					record.setCheckIn(new Date(bundle.getLong(TIME_KEY)));
-					record.setCheckOut(null);
-					record.setLocation(location);
-					dataSource.insertRecord(record);
-					
-					notifyService();
-
-					Log.i(TAG, "User has entered to " + location.getName());
-
-				} catch (NoWatchedLocationFoundException e) {
-					Log.e(TAG, "Watched Location doesn't exist ", e);
-				}
-				
+				processEndEnterEvent(locationId, time);
 				break;
 
 			case WatchedLocation.OUTSIDE_LOCATION:
 
-				try {
-
-					Bundle bundle = msg.getData();
-
-					WatchedLocation location = dataSource
-							.getWatchedLocation(bundle.getInt(LOCATION_KEY));
-					location.setStatus(WatchedLocation.OUTSIDE_LOCATION);
-					dataSource.updateWatchedLocation(location);
-
-					WatchedLocationRecord record = dataSource
-							.getUnCheckedWatchedLocationRecord(location);
-					record.setCheckOut(new Date(bundle.getLong(TIME_KEY)));
-					dataSource.updateRecord(record);
-					
-					notifyService();
-
-					Log.i(TAG, "User has left " + location.getName());
-
-				} catch (NoWatchedLocationFoundException e) {
-					Log.e(TAG, "Watched Location doesn't exist ", e);
-				}
-				
+				processEndLeaveEvent(locationId, time);
 				break;
 
 			default:
-				
+
 				Log.w(TAG, "Unrecognized message received " + msg.what);
-				
 				break;
 			}
 		}
 
 		private void notifyService() {
-			
-			Message msg = Message.obtain(null, AutoCheckerService.MSG_PROX_ALERT_DONE);
+
+			Message msg = Message.obtain(this,
+					AutoCheckerService.MSG_PROX_ALERT_DONE);
 			try {
 				messenger.send(msg);
 			} catch (RemoteException e) {
-				Log.e(TAG, "Can't send proximity alert done message to service", e);
+				Log.e(TAG,
+						"Can't send proximity alert done message to service", e);
 			}
-			
+
 		};
 	};
 
 	public AutoCheckerProximityListener(Context context, Messenger mService) {
 
 		dataSource = new AutoCheckerDataSource(context);
-		try {
-			dataSource.open();
-		} catch (SQLException e) {
-			Log.e(TAG, "DataSource open exception", e);
-		}
 		messenger = mService;
 	}
 
@@ -127,6 +142,8 @@ public class AutoCheckerProximityListener implements IProximityListener {
 		Log.d(TAG, "Processing enter event");
 
 		try {
+
+			dataSource.open();
 
 			WatchedLocation location = dataSource
 					.getWatchedLocation(locationId);
@@ -164,7 +181,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 						"Detected too early leave -> enter events. This event isn't taken in account");
 
 				break;
-				
+
 			case WatchedLocation.INSIDE_LOCATION:
 			case WatchedLocation.ENTERING_LOCATION:
 
@@ -173,8 +190,12 @@ public class AutoCheckerProximityListener implements IProximityListener {
 				break;
 			}
 
+			dataSource.close();
+
 		} catch (NoWatchedLocationFoundException e) {
 			Log.e(TAG, "Watched Location doesn't exist ", e);
+		} catch (SQLException e) {
+			Log.e(TAG, "DataSource open exception", e);
 		}
 	}
 
@@ -184,6 +205,8 @@ public class AutoCheckerProximityListener implements IProximityListener {
 		Log.d(TAG, "Processing leave event");
 
 		try {
+
+			dataSource.open();
 
 			WatchedLocation location = dataSource
 					.getWatchedLocation(locationId);
@@ -221,7 +244,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 						"Detected too early enter -> leave events. This event isn't taken in account");
 
 				break;
-				
+
 			case WatchedLocation.OUTSIDE_LOCATION:
 			case WatchedLocation.LEAVING_LOCATION:
 
@@ -230,8 +253,12 @@ public class AutoCheckerProximityListener implements IProximityListener {
 				break;
 			}
 
+			dataSource.close();
+
 		} catch (NoWatchedLocationFoundException e) {
 			Log.e(TAG, "Watched Location doesn't exist ", e);
+		} catch (SQLException e) {
+			Log.e(TAG, "DataSource open exception", e);
 		}
 	}
 }
