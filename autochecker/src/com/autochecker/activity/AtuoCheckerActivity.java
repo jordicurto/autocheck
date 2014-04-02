@@ -2,13 +2,9 @@ package com.autochecker.activity;
 
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
-import java.util.Calendar;
-import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
-import java.util.Map;
 
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
@@ -37,7 +33,6 @@ import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ListView;
-import android.widget.SimpleAdapter;
 import android.widget.TextView;
 
 import com.autochecker.R;
@@ -49,16 +44,19 @@ import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.service.AutoCheckerService;
 import com.autochecker.util.DateUtils;
 
-public class AtuoCheckerActivity extends Activity {
+public class AtuoCheckerActivity extends Activity implements
+		ActionBar.TabListener, ServiceConnection {
 
 	private final String TAG = getClass().getSimpleName();
- 
+
 	public static final SimpleDateFormat timeFormat = new SimpleDateFormat(
 			"HH:mm", Locale.getDefault());
 	public static final SimpleDateFormat dayFormat = new SimpleDateFormat(
 			"cccc, d", Locale.getDefault());
 	public static final SimpleDateFormat weekFormat = new SimpleDateFormat(
 			"d MMMM", Locale.getDefault());
+	public static final SimpleDateFormat weekDayFormat = new SimpleDateFormat(
+			"d", Locale.getDefault());
 
 	private static AutoCheckerDataSource dataSource = null;
 	private boolean serviceBound = false;
@@ -71,45 +69,44 @@ public class AtuoCheckerActivity extends Activity {
 	private AutoCheckerLocationRecordPageAdapter pageAdapter;
 
 	private static WatchedLocation location;
+	private List<Date> intervalTabDates;
 
 	private class AutoCheckerLocationRecordPageAdapter extends
 			FragmentStatePagerAdapter {
 
-		private List<Date> dates;
-
-		public AutoCheckerLocationRecordPageAdapter(FragmentManager fm,
-				List<Date> dates) {
+		public AutoCheckerLocationRecordPageAdapter(FragmentManager fm) {
 			super(fm);
-			this.dates = dates;
 		}
 
 		@Override
 		public Fragment getItem(int i) {
 			Fragment fragment = new AutoCheckerWeekRecordFragment();
 			Bundle args = new Bundle();
-			args.putLong(AutoCheckerWeekRecordFragment.ARG_START_DATE, dates
-					.get(i).getTime());
+			args.putLong(AutoCheckerWeekRecordFragment.ARG_START_DATE,
+					intervalTabDates.get(i).getTime());
 			args.putLong(AutoCheckerWeekRecordFragment.ARG_END_DATE,
-					dates.get(i + 1).getTime());
+					intervalTabDates.get(i + 1).getTime());
 			fragment.setArguments(args);
 			return fragment;
 		}
 
 		@Override
 		public int getCount() {
-			return dates.size() - 1;
+			return intervalTabDates.size() - 1;
+		}
+
+		public int getItemPosition(Object object) {
+			return POSITION_NONE;
 		}
 	}
 
-	/**
-	 * A placeholder fragment containing a simple view.
-	 */
 	public static class AutoCheckerWeekRecordFragment extends Fragment {
 
 		public static final String ARG_START_DATE = "start_date";
 		public static final String ARG_END_DATE = "end_date";
 
 		public AutoCheckerWeekRecordFragment() {
+
 		}
 
 		@Override
@@ -164,7 +161,11 @@ public class AtuoCheckerActivity extends Activity {
 
 			switch (msg.what) {
 			case AutoCheckerService.MSG_PROX_ALERT_DONE:
-				Log.i(TAG, "Aqui hauria de referescar les dades");
+				intervalTabDates.clear();
+				intervalTabDates = dataSource.getDateIntervals(location,
+						DateUtils.WEEK_INTERVAL_TYPE);
+				refreshTabs();
+				pageAdapter.notifyDataSetChanged();
 				break;
 			default:
 				super.handleMessage(msg);
@@ -172,39 +173,50 @@ public class AtuoCheckerActivity extends Activity {
 		}
 	}
 
-	/** Defines callbacks for service binding, passed to bindService() */
-	private ServiceConnection serviceConnection = new ServiceConnection() {
+	@Override
+	public void onTabSelected(Tab tab, FragmentTransaction ft) {
+		viewPager.setCurrentItem(tab.getPosition());
+	}
 
-		@Override
-		public void onServiceConnected(ComponentName className,
-				IBinder serviceBinder) {
+	@Override
+	public void onTabUnselected(Tab tab, FragmentTransaction ft) {
 
-			messengerService = new Messenger(serviceBinder);
+	}
 
-			try {
+	@Override
+	public void onTabReselected(Tab tab, FragmentTransaction ft) {
 
-				Message msg = Message.obtain(null,
-						AutoCheckerService.MSG_REGISTER_CLIENT);
-				msg.replyTo = messengerActivity;
-				messengerService.send(msg);
+	}
 
-			} catch (RemoteException e) {
-				Log.e(TAG, "Can't send register message to service ", e);
-			}
+	@Override
+	public void onServiceConnected(ComponentName className,
+			IBinder serviceBinder) {
+
+		messengerService = new Messenger(serviceBinder);
+
+		try {
+
+			Message msg = Message.obtain(null,
+					AutoCheckerService.MSG_REGISTER_CLIENT);
+			msg.replyTo = messengerActivity;
+			messengerService.send(msg);
 
 			serviceBound = true;
-		}
 
-		@Override
-		public void onServiceDisconnected(ComponentName className) {
-			serviceBound = false;
-			messengerActivity = null;
+		} catch (RemoteException e) {
+			Log.e(TAG, "Can't send register message to service ", e);
 		}
-	};
+	}
+
+	@Override
+	public void onServiceDisconnected(ComponentName className) {
+		serviceBound = false;
+	}
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+
 		setContentView(R.layout.activity_atuo_checker);
 
 		if (dataSource == null) {
@@ -217,58 +229,84 @@ public class AtuoCheckerActivity extends Activity {
 		}
 
 		try {
-			
+
 			location = dataSource.getWatchedLocation("GTD");
-
-			Pair<Date, Date> limits = dataSource.getLimitDates(location);
-			List<Date> dates = DateUtils.getDateIntervals(limits.first,
-					limits.second != null ? limits.second : new Date(),
+			intervalTabDates = dataSource.getDateIntervals(location,
 					DateUtils.WEEK_INTERVAL_TYPE);
-
-			pageAdapter = new AutoCheckerLocationRecordPageAdapter(
-					getFragmentManager(), dates);
-			viewPager = (ViewPager) findViewById(R.id.pager);
-			viewPager.setAdapter(pageAdapter);
-			
-		    viewPager.setOnPageChangeListener(
-		            new ViewPager.SimpleOnPageChangeListener() {
-		                @Override
-		                public void onPageSelected(int position) {
-		                    getActionBar().setSelectedNavigationItem(position);
-		                }
-		            });
-
-			final ActionBar actionBar = getActionBar();
-
-			// Specify that tabs should be displayed in the action bar.
-			actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-			
-		    ActionBar.TabListener tabListener = new ActionBar.TabListener() {
-
-				@Override
-				public void onTabSelected(Tab tab, FragmentTransaction ft) {
-					viewPager.setCurrentItem(tab.getPosition());
-				}
-
-				@Override
-				public void onTabUnselected(Tab tab, FragmentTransaction ft) {
-				}
-
-				@Override
-				public void onTabReselected(Tab tab, FragmentTransaction ft) {
-					
-				}
-		    };
-
-			for (int i = 0; i < dates.size() - 1; i++) {
-				actionBar.addTab(actionBar.newTab().setText(
-						weekFormat.format(dates.get(i)) + " - "
-								+ weekFormat.format(dates.get(i + 1))).setTabListener(tabListener));
-			}
 
 		} catch (NoWatchedLocationFoundException e) {
 			Log.e(TAG, "No watched location found ", e);
 		}
+
+		pageAdapter = new AutoCheckerLocationRecordPageAdapter(
+				getFragmentManager());
+
+		viewPager = (ViewPager) findViewById(R.id.pager);
+		viewPager.setAdapter(pageAdapter);
+
+		viewPager
+				.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+					@Override
+					public void onPageSelected(int position) {
+						getActionBar().setSelectedNavigationItem(position);
+					}
+				});
+
+		final ActionBar actionBar = getActionBar();
+		// Specify that tabs should be displayed in the action bar.
+		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+
+		refreshTabs();
+
+		setCurrentTab();
+	}
+
+	private void refreshTabs() {
+
+		final ActionBar actionBar = getActionBar();
+
+		int currentPos = actionBar.getSelectedNavigationIndex();
+
+		actionBar.removeAllTabs();
+
+		for (int i = 0; i < intervalTabDates.size() - 1; i++) {
+
+			String tabText = getDateIntervalString(DateUtils.getInterval(intervalTabDates, i));
+			
+			Tab tab = actionBar.newTab();
+			tab.setText(tabText);
+			tab.setTabListener(this);
+
+			actionBar.addTab(tab);
+		}
+
+		if (currentPos >= 0) {
+			actionBar.setSelectedNavigationItem(currentPos);
+		}
+	}
+
+	private String getDateIntervalString(Pair<Date, Date> interval) {
+
+		String dateInterval = "";
+
+		if (DateUtils.sameMonth(interval)) {
+			dateInterval = weekDayFormat.format(interval.first);
+		} else {
+			dateInterval = weekFormat.format(interval.first);
+		}
+
+		return dateInterval + " - " + weekFormat.format(interval.second);
+	}
+
+	private void setCurrentTab() {
+		Date current = new Date();
+		int pos = 0;
+		for (int i = 0; i < intervalTabDates.size() - 1; i++) {
+			if (intervalTabDates.get(i).before(current)) {
+				pos = i;
+			}
+		}
+		getActionBar().setSelectedNavigationItem(pos);
 	}
 
 	@Override
@@ -277,7 +315,7 @@ public class AtuoCheckerActivity extends Activity {
 		super.onStart();
 
 		Intent intent = new Intent(this, AutoCheckerService.class);
-		bindService(intent, serviceConnection, Context.BIND_AUTO_CREATE);
+		bindService(intent, this, Context.BIND_AUTO_CREATE);
 	}
 
 	@Override
@@ -297,7 +335,7 @@ public class AtuoCheckerActivity extends Activity {
 				}
 			}
 
-			unbindService(serviceConnection);
+			unbindService(this);
 			serviceBound = false;
 		}
 	}

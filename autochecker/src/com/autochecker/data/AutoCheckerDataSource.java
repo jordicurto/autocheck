@@ -15,6 +15,7 @@ import android.util.Pair;
 import com.autochecker.data.exception.NoWatchedLocationFoundException;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.util.DateUtils;
 
 public class AutoCheckerDataSource {
 
@@ -313,20 +314,12 @@ public class AutoCheckerDataSource {
 		return new Pair<Date, Date>(firstRecord.getCheckIn(),
 				lastRecord.getCheckOut());
 	}
-
-	// public Date checkDuration(WatchedLocation location, Date start, Date end)
-	// {
-	//
-	// Cursor cursor = database.query(
-	// AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
-	// AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-	// AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-	// + location.getId() + " and "
-	// + AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN
-	// + " beetween " + start.getTime() + " and "
-	// + end.getTime(), null, null, null,
-	// AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN + " asc");
-	//
-	// return null;
-	// }
+	
+	public List<Date> getDateIntervals(WatchedLocation location, int intervalType) {
+		
+		Pair<Date, Date> limits = getLimitDates(location);
+		return DateUtils.getDateIntervals(limits.first,
+				limits.second != null ? limits.second : new Date(),
+				intervalType);
+	}
 }
