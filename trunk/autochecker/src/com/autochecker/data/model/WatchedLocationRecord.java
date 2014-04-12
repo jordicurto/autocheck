@@ -3,6 +3,8 @@ package com.autochecker.data.model;
 import java.io.Serializable;
 import java.util.Date;
 
+import com.autochecker.util.DateUtils;
+
 public class WatchedLocationRecord implements Serializable {
 
 	/**
@@ -61,5 +63,12 @@ public class WatchedLocationRecord implements Serializable {
 			}
 		}
 		return new Duration(checkDuration);
+	}
+
+	public String getCheckString() {
+		return DateUtils.timeFormat.format(checkIn)
+				+ " - "
+				+ (checkOut != null ? DateUtils.timeFormat
+						.format(checkOut) : "...");
 	}
 }

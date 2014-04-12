@@ -1,15 +1,24 @@
 package com.autochecker.util;
 
-import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 import android.util.Pair;
 
 public class DateUtils {
+	
+	public static final SimpleDateFormat timeFormat = new SimpleDateFormat(
+			"HH:mm", Locale.getDefault());
+	public static final SimpleDateFormat dayFormat = new SimpleDateFormat(
+			"cccc, d", Locale.getDefault());
+	public static final SimpleDateFormat weekFormat = new SimpleDateFormat(
+			"d MMMM", Locale.getDefault());
+	public static final SimpleDateFormat weekDayFormat = new SimpleDateFormat(
+			"d", Locale.getDefault());
 
 	public static final int DAY_INTERVAL_TYPE = 0;
 	public static final int WEEK_INTERVAL_TYPE = 1;
@@ -81,8 +90,17 @@ public class DateUtils {
 
 		return (monthStart == monthEnd);
 	}
+	
+	public static String getDateIntervalString(List<Date> dates,
+			int intervalPosition) {
+		
+		Pair<Date, Date> interval = getInterval(dates, intervalPosition);
 
-	public static void main(String args[]) {
+		return (sameMonth(interval) ? weekDayFormat.format(interval.first) : 
+			weekFormat.format(interval.first)) + " - " + weekFormat.format(interval.second);
+	}
+
+/*	public static void main(String args[]) {
 
 		DateFormat format = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
 
@@ -108,5 +126,5 @@ public class DateUtils {
 				MONTH_INTERVAL_TYPE)) {
 			System.out.println(format.format(d));
 		}
-	}
+	}*/
 }

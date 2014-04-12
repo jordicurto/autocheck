@@ -48,7 +48,7 @@ public class AutoCheckerDataSource {
 				.getDouble(AutoCheckerSQLiteOpenHelper.COLUMN_LATITUDE_INDEX));
 		location.setLongitude(cursor
 				.getDouble(AutoCheckerSQLiteOpenHelper.COLUMN_LONGITUDE_INDEX));
-		location.setAccuracy(cursor
+		location.setRadius(cursor
 				.getFloat(AutoCheckerSQLiteOpenHelper.COLUMN_RADIUS_INDEX));
 		location.setStatus(cursor
 				.getInt(AutoCheckerSQLiteOpenHelper.COLUMN_STATUS_INDEX));
@@ -81,7 +81,7 @@ public class AutoCheckerDataSource {
 		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LONGITUDE,
 				location.getLongitude());
 		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_RADIUS,
-				location.getAccuracy());
+				location.getRadius());
 		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_STATUS,
 				location.getStatus());
 

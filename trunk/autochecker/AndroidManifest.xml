@@ -23,13 +23,12 @@
             android:label="@string/app_name" >
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
+
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <service
-            android:name="com.autochecker.service.AutoCheckerService"
-            android:process=":autocheckerservice" />
+        <service android:name="com.autochecker.service.AutoCheckerService" />
 
         <receiver
             android:name="com.autochecker.service.AutoCheckerReceiver"
@@ -40,6 +39,7 @@
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
             </intent-filter>
         </receiver>
+
     </application>
 
 </manifest>
