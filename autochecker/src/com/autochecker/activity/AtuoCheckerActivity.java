@@ -1,10 +1,8 @@
 package com.autochecker.activity;
 
-import java.text.SimpleDateFormat;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
-import java.util.Locale;
 
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
@@ -26,13 +24,12 @@ import android.os.RemoteException;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
-import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ListView;
+import android.widget.ExpandableListView;
 import android.widget.TextView;
 
 import com.autochecker.R;
@@ -48,15 +45,6 @@ public class AtuoCheckerActivity extends Activity implements
 		ActionBar.TabListener, ServiceConnection {
 
 	private final String TAG = getClass().getSimpleName();
-
-	public static final SimpleDateFormat timeFormat = new SimpleDateFormat(
-			"HH:mm", Locale.getDefault());
-	public static final SimpleDateFormat dayFormat = new SimpleDateFormat(
-			"cccc, d", Locale.getDefault());
-	public static final SimpleDateFormat weekFormat = new SimpleDateFormat(
-			"d MMMM", Locale.getDefault());
-	public static final SimpleDateFormat weekDayFormat = new SimpleDateFormat(
-			"d", Locale.getDefault());
 
 	private static AutoCheckerDataSource dataSource = null;
 	private boolean serviceBound = false;
@@ -142,7 +130,7 @@ public class AtuoCheckerActivity extends Activity implements
 			WeekDayRecordRowsAdapter adapter = new WeekDayRecordRowsAdapter(
 					getActivity(), rows);
 
-			ListView listView = (ListView) rootView
+			ExpandableListView listView = (ExpandableListView) rootView
 					.findViewById(R.id.weekDayList);
 			listView.setAdapter(adapter);
 
@@ -253,7 +241,7 @@ public class AtuoCheckerActivity extends Activity implements
 				});
 
 		final ActionBar actionBar = getActionBar();
-		// Specify that tabs should be displayed in the action bar.
+		
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 
 		refreshTabs();
@@ -271,7 +259,7 @@ public class AtuoCheckerActivity extends Activity implements
 
 		for (int i = 0; i < intervalTabDates.size() - 1; i++) {
 
-			String tabText = getDateIntervalString(DateUtils.getInterval(intervalTabDates, i));
+			String tabText = DateUtils.getDateIntervalString(intervalTabDates, i);
 			
 			Tab tab = actionBar.newTab();
 			tab.setText(tabText);
@@ -283,19 +271,6 @@ public class AtuoCheckerActivity extends Activity implements
 		if (currentPos >= 0) {
 			actionBar.setSelectedNavigationItem(currentPos);
 		}
-	}
-
-	private String getDateIntervalString(Pair<Date, Date> interval) {
-
-		String dateInterval = "";
-
-		if (DateUtils.sameMonth(interval)) {
-			dateInterval = weekDayFormat.format(interval.first);
-		} else {
-			dateInterval = weekFormat.format(interval.first);
-		}
-
-		return dateInterval + " - " + weekFormat.format(interval.second);
 	}
 
 	private void setCurrentTab() {

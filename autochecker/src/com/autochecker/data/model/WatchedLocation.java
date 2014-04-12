@@ -11,14 +11,12 @@ public class WatchedLocation implements Serializable {
 	
 	public static final int OUTSIDE_LOCATION = 0;
 	public static final int INSIDE_LOCATION = 1;
-	public static final int ENTERING_LOCATION = 2;	
-	public static final int LEAVING_LOCATION = 3;
 	
 	private int id;
 	private String name;
 	private double longitude;
 	private double latitude;
-	private float accuracy;
+	private float radius;
 	private int status;
 
 	public WatchedLocation() {
@@ -57,12 +55,12 @@ public class WatchedLocation implements Serializable {
 		this.latitude = latitude;
 	}
 
-	public float getAccuracy() {
-		return accuracy;
+	public float getRadius() {
+		return radius;
 	}
 
-	public void setAccuracy(float accuracy) {
-		this.accuracy = accuracy;
+	public void setRadius(float radius) {
+		this.radius = radius;
 	}
 
 	public int getStatus() {
@@ -74,7 +72,7 @@ public class WatchedLocation implements Serializable {
 	}
 	
 	public String toString() {
-		return "(" + name + ") Lat: " + latitude + ", Long: " + longitude + ", Accuracy: " + accuracy;
+		return "(" + name + ") Lat: " + latitude + ", Long: " + longitude + ", Radius: " + radius;
 	}
 
 }

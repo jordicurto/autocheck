@@ -3,38 +3,109 @@ package com.autochecker.activity;
 import java.util.List;
 
 import com.autochecker.R;
+import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.util.DateUtils;
 
+import android.app.Activity;
 import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.ArrayAdapter;
+import android.widget.BaseExpandableListAdapter;
 import android.widget.TextView;
 
-public class WeekDayRecordRowsAdapter extends ArrayAdapter<WeekDayRecordRow> {
+public class WeekDayRecordRowsAdapter extends BaseExpandableListAdapter {
 	
-	public WeekDayRecordRowsAdapter(Context context,
+	private Activity context;
+	private List<WeekDayRecordRow> objects;
+	
+	public WeekDayRecordRowsAdapter(Activity context,
 			List<WeekDayRecordRow> objects) {
-		super(context, R.layout.record_row, objects);
+		this.context = context;
+		this.objects = objects;
 	}
-	
+
 	@Override
-	public View getView(int position, View convertView, ViewGroup parent) {
-		
-		LayoutInflater inflater = (LayoutInflater) getContext().getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-		View rootView = inflater.inflate(R.layout.record_row, parent, false);
-		
-		WeekDayRecordRow row = getItem(position);
-		
-		TextView weekDay = (TextView) rootView.findViewById(R.id.week_day);
-		weekDay.setText(row.getWeekDayString());
-		
-		TextView firsLast = (TextView) rootView.findViewById(R.id.first_last_record);
-		firsLast.setText(row.getFirstLastCheckString());
-		
-		TextView duration = (TextView) rootView.findViewById(R.id.record_duration);
-		duration.setText(row.getDurationString());
-		
-		return rootView;
+	public int getGroupCount() {
+		return objects.size();
 	}
+
+	@Override
+	public int getChildrenCount(int groupPosition) {
+		return objects.get(groupPosition).getRecords().size();
+	}
+
+	@Override
+	public Object getGroup(int groupPosition) {
+		return objects.get(groupPosition);
+	}
+
+	@Override
+	public Object getChild(int groupPosition, int childPosition) {
+		return objects.get(groupPosition).getRecords().get(childPosition);
+	}
+
+	@Override
+	public long getGroupId(int groupPosition) {
+		return groupPosition;
+	}
+
+	@Override
+	public long getChildId(int groupPosition, int childPosition) {
+		return childPosition;
+	}
+
+	@Override
+	public boolean hasStableIds() {
+		return true;
+	}
+
+	@Override
+	public View getGroupView(int groupPosition, boolean isExpanded,
+			View convertView, ViewGroup parent) {
+		
+		WeekDayRecordRow row = (WeekDayRecordRow) getGroup(groupPosition);
+		
+		LayoutInflater inflater = context.getLayoutInflater();
+		
+        if (convertView == null) {
+            convertView = inflater.inflate(R.layout.week_records_row, null);
+        }
+        
+        TextView textWeekDay = (TextView) convertView.findViewById(R.id.week_day);
+        textWeekDay.setText(row.getWeekDayString());
+        
+        TextView textDuration = (TextView) convertView.findViewById(R.id.day_record_duration);
+        textDuration.setText(row.getDurationString());
+
+		return convertView;
+	}
+
+	@Override
+	public View getChildView(int groupPosition, int childPosition,
+			boolean isLastChild, View convertView, ViewGroup parent) {
+		
+		WatchedLocationRecord record = (WatchedLocationRecord) getChild(groupPosition, childPosition);
+		
+		LayoutInflater inflater = context.getLayoutInflater();
+		
+        if (convertView == null) {
+            convertView = inflater.inflate(R.layout.day_record_row, null);
+        }
+        
+        TextView textCheck = (TextView) convertView.findViewById(R.id.record_check);
+        textCheck.setText(record.getCheckString());
+        
+        if(record.isActive()) {
+        	convertView.setBackgroundColor(context.getResources().getColor(R.color.light_gray));
+        }
+		
+		return convertView;
+	}
+
+	@Override
+	public boolean isChildSelectable(int groupPosition, int childPosition) {
+		return false;
+	}
+
 }
