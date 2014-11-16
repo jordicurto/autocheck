@@ -2,7 +2,6 @@ package com.autochecker.service;
 
 import java.util.List;
 
-import android.app.Notification;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -17,7 +16,6 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.model.WatchedLocation;
 

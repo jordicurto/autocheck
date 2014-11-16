@@ -2,17 +2,15 @@ package com.autochecker.activity;
 
 import java.util.List;
 
-import com.autochecker.R;
-import com.autochecker.data.model.WatchedLocationRecord;
-import com.autochecker.util.DateUtils;
-
 import android.app.Activity;
-import android.content.Context;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.BaseExpandableListAdapter;
 import android.widget.TextView;
+
+import com.autochecker.R;
+import com.autochecker.data.model.WatchedLocationRecord;
 
 public class WeekDayRecordRowsAdapter extends BaseExpandableListAdapter {
 	

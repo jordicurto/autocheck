@@ -165,14 +165,20 @@ public class AutoCheckerReceiver extends BroadcastReceiver implements IProximity
 				AutoCheckerService.MSG_PROX_ALERT_DONE);
 		
 		IBinder binder = peekService(context, new Intent(context, AutoCheckerService.class));
-		Messenger messenger = new Messenger(binder);
 		
-		try {
-			messenger.send(msg);
-		} catch (RemoteException e) {
-			Log.e(TAG,
-					"Can't send proximity alert done message to service", e);
+		if (binder != null) {
+		
+			Messenger messenger = new Messenger(binder);
+			
+			try {
+				messenger.send(msg);
+			} catch (RemoteException e) {
+				Log.e(TAG,
+						"Can't send proximity alert done message to service", e);
+			}
+			
+		} else {
+			Log.w(TAG, "Can't peek service. Service not running...");
 		}
-
 	}
 }
