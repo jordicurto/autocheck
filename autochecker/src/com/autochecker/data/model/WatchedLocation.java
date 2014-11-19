@@ -22,6 +22,13 @@ public class WatchedLocation implements Serializable {
 	public WatchedLocation() {
 		
 	}
+	
+	public WatchedLocation(String name, double longitude, double latitude, float radius) {
+		this.name = name;
+		this.longitude = longitude;
+		this.latitude = latitude;
+		this.radius = radius;
+	}
 
 	public int getId() {
 		return id;

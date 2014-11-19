@@ -14,7 +14,7 @@
             android:layout_alignParentLeft="true"
             android:layout_marginLeft="20dp"
             android:gravity="center_vertical"
-            android:text="00:00 - 00:00"
+            android:text="@string/first_last_day_record"
             android:textSize="@dimen/check_hour_dim" />
     
 </RelativeLayout>
