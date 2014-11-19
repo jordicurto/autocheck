@@ -1,0 +1,53 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:paddingBottom="@dimen/activity_vertical_margin"
+    android:paddingLeft="@dimen/activity_horizontal_margin"
+    android:paddingRight="@dimen/activity_horizontal_margin"
+    android:paddingTop="@dimen/activity_vertical_margin"
+    tools:context="com.autochecker.AtuoChecker$PlaceholderFragment" >
+
+    <ExpandableListView
+        android:id="@+id/weekDayList"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentLeft="true"
+        android:layout_alignParentTop="true"
+        android:layout_marginBottom="60dp" >
+    </ExpandableListView>
+
+    <View
+        android:id="@+id/view1"
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_alignParentBottom="true"
+        android:layout_marginBottom="60dp"
+        android:background="@color/light_gray" />
+
+    <TextView
+        android:id="@+id/week_duration"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignParentBottom="true"
+        android:layout_alignRight="@+id/weekDayList"
+        android:layout_marginRight="5dp"
+        android:gravity="center_vertical"
+        android:text="@string/record_duration"
+        android:textColor="@android:color/holo_green_dark"
+        android:textSize="@dimen/total_hours_dim"
+        android:textStyle="bold" />
+
+    <TextView
+        android:id="@+id/total_text"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_alignBottom="@+id/week_duration"
+        android:layout_alignLeft="@+id/weekDayList"
+        android:layout_alignTop="@+id/week_duration"
+        android:layout_marginLeft="5dp"
+        android:gravity="center_vertical"
+        android:text="Total"
+        android:textSize="@dimen/week_day_dim" />
+
+</RelativeLayout>
