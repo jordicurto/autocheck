@@ -318,8 +318,12 @@ public class AutoCheckerDataSource {
 	public List<Date> getDateIntervals(WatchedLocation location, int intervalType) {
 		
 		Pair<Date, Date> limits = getLimitDates(location);
-		return DateUtils.getDateIntervals(limits.first,
-				limits.second != null ? limits.second : new Date(),
-				intervalType);
+		if (limits.first == null) {
+			return new ArrayList<Date>();
+		} else {
+			return DateUtils.getDateIntervals(limits.first,
+					limits.second != null ? limits.second : new Date(),
+					intervalType);	
+		}
 	}
 }

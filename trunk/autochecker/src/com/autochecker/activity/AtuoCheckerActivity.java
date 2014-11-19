@@ -58,6 +58,12 @@ public class AtuoCheckerActivity extends Activity implements
 
 	private static WatchedLocation location;
 	private List<Date> intervalTabDates;
+	
+	// Test GTD
+	private static final boolean testGTD = true;
+	private static final WatchedLocation wlGTD = new WatchedLocation("GTD",
+			2.2095447778701782, 41.40069010694943, 150);
+	//
 
 	private class AutoCheckerLocationRecordPageAdapter extends
 			FragmentStatePagerAdapter {
@@ -148,7 +154,7 @@ public class AtuoCheckerActivity extends Activity implements
 		public void handleMessage(Message msg) {
 
 			switch (msg.what) {
-			case AutoCheckerService.MSG_PROX_ALERT_DONE:
+			case AutoCheckerService.MSG_PROX_ALERT_RECEIVED:
 				intervalTabDates.clear();
 				intervalTabDates = dataSource.getDateIntervals(location,
 						DateUtils.WEEK_INTERVAL_TYPE);
@@ -223,7 +229,12 @@ public class AtuoCheckerActivity extends Activity implements
 					DateUtils.WEEK_INTERVAL_TYPE);
 
 		} catch (NoWatchedLocationFoundException e) {
-			Log.e(TAG, "No watched location found ", e);
+			if (testGTD) {
+				dataSource.insertWatchedLocation(wlGTD);
+				intervalTabDates = new ArrayList<Date>();
+			} else {
+				Log.e(TAG, "No watched location found ", e);
+			}
 		}
 
 		pageAdapter = new AutoCheckerLocationRecordPageAdapter(
@@ -241,7 +252,7 @@ public class AtuoCheckerActivity extends Activity implements
 				});
 
 		final ActionBar actionBar = getActionBar();
-		
+
 		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
 
 		refreshTabs();
@@ -259,8 +270,9 @@ public class AtuoCheckerActivity extends Activity implements
 
 		for (int i = 0; i < intervalTabDates.size() - 1; i++) {
 
-			String tabText = DateUtils.getDateIntervalString(intervalTabDates, i);
-			
+			String tabText = DateUtils.getDateIntervalString(intervalTabDates,
+					i);
+
 			Tab tab = actionBar.newTab();
 			tab.setText(tabText);
 			tab.setTabListener(this);
@@ -281,7 +293,8 @@ public class AtuoCheckerActivity extends Activity implements
 				pos = i;
 			}
 		}
-		getActionBar().setSelectedNavigationItem(pos);
+		if (getActionBar().getTabCount() > 0)
+			getActionBar().setSelectedNavigationItem(pos);
 	}
 
 	@Override
@@ -289,8 +302,7 @@ public class AtuoCheckerActivity extends Activity implements
 
 		super.onStart();
 
-		Intent intent = new Intent(this, AutoCheckerService.class);
-		bindService(intent, this, Context.BIND_AUTO_CREATE);
+		bindService(new Intent(this, AutoCheckerService.class), this, Context.BIND_AUTO_CREATE);
 	}
 
 	@Override
