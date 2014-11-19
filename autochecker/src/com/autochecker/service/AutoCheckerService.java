@@ -1,6 +1,5 @@
 package com.autochecker.service;
 
-import java.util.Date;
 import java.util.List;
 
 import android.app.PendingIntent;
@@ -18,20 +17,16 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.exception.NoWatchedLocationFoundException;
 import com.autochecker.data.model.WatchedLocation;
-import com.autochecker.data.model.WatchedLocationRecord;
-import com.autochecker.listener.IProximityListener;
-import com.autochecker.service.model.Check;
 
-public class AutoCheckerService extends Service implements IProximityListener {
+public class AutoCheckerService extends Service {
 
 	public static final String LOCATION_ALERT = "ALERT_LOCATION";
 	public static final String PROX_ALERT_INTENT = "ACTION_PROXIMITY_ALERT";
 
 	public static final int MSG_REGISTER_CLIENT = 1;
 	public static final int MSG_UNREGISTER_CLIENT = 2;
-	public static final int MSG_PROX_ALERT_RECEIVED = 3;
+	public static final int MSG_PROX_ALERT_DONE = 3;
 
 	private final String TAG = getClass().getSimpleName();
 
@@ -43,11 +38,6 @@ public class AutoCheckerService extends Service implements IProximityListener {
 	private static class IncomingHandler extends Handler {
 
 		private final String TAG = getClass().getSimpleName();
-		private IProximityListener listener;
-
-		public IncomingHandler(IProximityListener listener) {
-			this.listener = listener;
-		}
 
 		@Override
 		public void handleMessage(Message msg) {
@@ -64,17 +54,9 @@ public class AutoCheckerService extends Service implements IProximityListener {
 				replyMessenger = null;
 				break;
 				
-			case MSG_PROX_ALERT_RECEIVED:
+			case MSG_PROX_ALERT_DONE:
 				
 				Log.d(TAG, "Proximity alert received from receiver...");
-
-				Check check = (Check) msg.obj;
-
-				if (check.isEnter()) {
-					listener.onEnter(check.getLocationId(), check.getTime());
-				} else {
-					listener.onLeave(check.getLocationId(), check.getTime());
-				}
 
 				if (replyMessenger != null) {
 					try {
@@ -93,7 +75,7 @@ public class AutoCheckerService extends Service implements IProximityListener {
 		}
 	}
 
-	private final Messenger messenger = new Messenger(new IncomingHandler(this));
+	private final Messenger messenger = new Messenger(new IncomingHandler());
 
 	private static Messenger replyMessenger;
 
@@ -166,92 +148,4 @@ public class AutoCheckerService extends Service implements IProximityListener {
 				PendingIntent.FLAG_CANCEL_CURRENT);
 	}
 
-	@Override
-	public void onEnter(int locationId, long time) {
-
-		Log.d(TAG, "Processing enter event");
-
-		try {
-
-			dataSource.open();
-
-			WatchedLocation location = dataSource
-					.getWatchedLocation(locationId);
-
-			switch (location.getStatus()) {
-
-			case WatchedLocation.OUTSIDE_LOCATION:
-
-				location.setStatus(WatchedLocation.INSIDE_LOCATION);
-				dataSource.updateWatchedLocation(location);
-
-				WatchedLocationRecord record = new WatchedLocationRecord();
-				record.setCheckIn(new Date(time));
-				record.setCheckOut(null);
-				record.setLocation(location);
-				dataSource.insertRecord(record);
-
-				Log.i(TAG, "User has entered to " + location.getName());
-
-				break;
-
-			case WatchedLocation.INSIDE_LOCATION:
-
-				Log.w(TAG, "User has entered to " + location.getName()
-						+ " and it was there yet");
-				break;
-			}
-
-			dataSource.close();
-
-		} catch (NoWatchedLocationFoundException e) {
-			Log.e(TAG, "Watched Location doesn't exist ", e);
-		} catch (SQLException e) {
-			Log.e(TAG, "DataSource open exception", e);
-		}
-	}
-
-	@Override
-	public void onLeave(int locationId, long time) {
-
-		Log.d(TAG, "Processing leave event");
-
-		try {
-
-			dataSource.open();
-
-			WatchedLocation location = dataSource
-					.getWatchedLocation(locationId);
-
-			switch (location.getStatus()) {
-
-			case WatchedLocation.INSIDE_LOCATION:
-
-				location.setStatus(WatchedLocation.OUTSIDE_LOCATION);
-				dataSource.updateWatchedLocation(location);
-
-				WatchedLocationRecord record = dataSource
-						.getUnCheckedWatchedLocationRecord(location);
-				record.setCheckOut(new Date(time));
-				dataSource.updateRecord(record);
-
-				Log.i(TAG, "User has left " + location.getName());
-
-				break;
-
-			case WatchedLocation.OUTSIDE_LOCATION:
-
-				Log.w(TAG, "User has leaving " + location.getName()
-						+ " and it wasn't there yet");
-				break;
-			}
-
-			dataSource.close();
-
-		} catch (NoWatchedLocationFoundException e) {
-			Log.e(TAG, "Watched Location doesn't exist ", e);
-		} catch (SQLException e) {
-			Log.e(TAG, "DataSource open exception", e);
-		}
-	}
 }

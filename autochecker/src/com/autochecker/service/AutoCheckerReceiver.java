@@ -1,10 +1,11 @@
 package com.autochecker.service;
 
+import java.util.Date;
+
 import android.content.BroadcastReceiver;
-import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
+import android.database.SQLException;
 import android.location.LocationManager;
 import android.os.Bundle;
 import android.os.IBinder;
@@ -13,16 +14,18 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.autochecker.service.model.Check;
+import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.exception.NoWatchedLocationFoundException;
+import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.listener.IProximityListener;
 
 public class AutoCheckerReceiver extends BroadcastReceiver implements
-		ServiceConnection {
+		IProximityListener {
 
 	private final String TAG = getClass().getSimpleName();
 
-	private Messenger messengerService = null;
-
-	private Check lastCheck;
+	private AutoCheckerDataSource dataSource;
 
 	@Override
 	public void onReceive(Context context, Intent intent) {
@@ -51,12 +54,17 @@ public class AutoCheckerReceiver extends BroadcastReceiver implements
 					.getBundleExtra(AutoCheckerService.PROX_ALERT_INTENT);
 			int locationId = b.getInt(AutoCheckerService.LOCATION_ALERT);
 
-			lastCheck = new Check(locationId, entered, time);
+			if (dataSource == null) {
+				dataSource = new AutoCheckerDataSource(context);
+			}
 
-			context.bindService(new Intent(context, AutoCheckerService.class),
-					this, Context.BIND_AUTO_CREATE);
+			if (entered) {
+				onEnter(locationId, time);
+			} else {
+				onLeave(locationId, time);
+			}
 
-			notifyService();
+			notifyService(context);
 
 		} else {
 
@@ -65,46 +73,117 @@ public class AutoCheckerReceiver extends BroadcastReceiver implements
 
 	}
 
-	private void notifyService() {
+	@Override
+	public void onEnter(int locationId, long time) {
 
-		if (messengerService != null) {
+		Log.d(TAG, "Processing enter event");
 
-			Log.d(TAG, "Sending message to service...");
-			
-			Message msg = Message.obtain(null,
-					AutoCheckerService.MSG_PROX_ALERT_RECEIVED, lastCheck);
+		try {
+
+			dataSource.open();
+
+			WatchedLocation location = dataSource
+					.getWatchedLocation(locationId);
+
+			switch (location.getStatus()) {
+
+			case WatchedLocation.OUTSIDE_LOCATION:
+
+				location.setStatus(WatchedLocation.INSIDE_LOCATION);
+				dataSource.updateWatchedLocation(location);
+
+				WatchedLocationRecord record = new WatchedLocationRecord();
+				record.setCheckIn(new Date(time));
+				record.setCheckOut(null);
+				record.setLocation(location);
+				dataSource.insertRecord(record);
+
+				Log.i(TAG, "User has entered to " + location.getName());
+
+				break;
+
+			case WatchedLocation.INSIDE_LOCATION:
+
+				Log.w(TAG, "User has entered to " + location.getName()
+						+ " and it was there yet");
+				break;
+			}
+
+			dataSource.close();
+
+		} catch (NoWatchedLocationFoundException e) {
+			Log.e(TAG, "Watched Location doesn't exist ", e);
+		} catch (SQLException e) {
+			Log.e(TAG, "DataSource open exception", e);
+		}
+	}
+
+	@Override
+	public void onLeave(int locationId, long time) {
+
+		Log.d(TAG, "Processing leave event");
+
+		try {
+
+			dataSource.open();
+
+			WatchedLocation location = dataSource
+					.getWatchedLocation(locationId);
+
+			switch (location.getStatus()) {
+
+			case WatchedLocation.INSIDE_LOCATION:
+
+				location.setStatus(WatchedLocation.OUTSIDE_LOCATION);
+				dataSource.updateWatchedLocation(location);
+
+				WatchedLocationRecord record = dataSource
+						.getUnCheckedWatchedLocationRecord(location);
+				record.setCheckOut(new Date(time));
+				dataSource.updateRecord(record);
+
+				Log.i(TAG, "User has left " + location.getName());
+
+				break;
+
+			case WatchedLocation.OUTSIDE_LOCATION:
+
+				Log.w(TAG, "User has leaving " + location.getName()
+						+ " and it wasn't there yet");
+				break;
+			}
+
+			dataSource.close();
+
+		} catch (NoWatchedLocationFoundException e) {
+			Log.e(TAG, "Watched Location doesn't exist ", e);
+		} catch (SQLException e) {
+			Log.e(TAG, "DataSource open exception", e);
+		}
+	}
+
+	private void notifyService(Context context) {
+
+		Message msg = Message.obtain(null,
+				AutoCheckerService.MSG_PROX_ALERT_DONE);
+
+		IBinder binder = peekService(context, new Intent(context,
+				AutoCheckerService.class));
+
+		if (binder != null) {
+
+			Messenger messenger = new Messenger(binder);
 
 			try {
-				
-				messengerService.send(msg);
-				
+				messenger.send(msg);
 			} catch (RemoteException e) {
 				Log.e(TAG,
-						"Can't send proximity alert message to service", e);
+						"Can't send proximity alert done message to service", e);
 			}
 			
-			lastCheck = null;
-			
 		} else {
-			Log.w(TAG, "Service is not bound yet!");
-		}
-	}
-
-	@Override
-	public void onServiceConnected(ComponentName className,
-			IBinder serviceBinder) {
-
-		messengerService = new Messenger(serviceBinder);
-
-		if (lastCheck != null) {
-			notifyService();
+			Log.i(TAG, "Can't peek service. Service is not running...");
 		}
 
-	}
-
-	@Override
-	public void onServiceDisconnected(ComponentName name) {
-		lastCheck = null;
-		messengerService = null;
 	}
 }
