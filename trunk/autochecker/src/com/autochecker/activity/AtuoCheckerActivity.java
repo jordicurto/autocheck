@@ -154,7 +154,7 @@ public class AtuoCheckerActivity extends Activity implements
 		public void handleMessage(Message msg) {
 
 			switch (msg.what) {
-			case AutoCheckerService.MSG_PROX_ALERT_RECEIVED:
+			case AutoCheckerService.MSG_PROX_ALERT_DONE:
 				intervalTabDates.clear();
 				intervalTabDates = dataSource.getDateIntervals(location,
 						DateUtils.WEEK_INTERVAL_TYPE);
