@@ -11,6 +11,8 @@ public class WatchedLocation implements Serializable {
 	
 	public static final int OUTSIDE_LOCATION = 0;
 	public static final int INSIDE_LOCATION = 1;
+	public static final int ENTERING_LOCATION = 2;
+	public static final int LEAVING_LOCATION = 3;
 	
 	private int id;
 	private String name;
@@ -80,6 +82,10 @@ public class WatchedLocation implements Serializable {
 	
 	public String toString() {
 		return "(" + name + ") Lat: " + latitude + ", Long: " + longitude + ", Radius: " + radius;
+	}
+
+	public boolean isInside() {
+		return status == INSIDE_LOCATION || status == ENTERING_LOCATION;
 	}
 
 }

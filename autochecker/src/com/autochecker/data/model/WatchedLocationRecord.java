@@ -69,6 +69,6 @@ public class WatchedLocationRecord implements Serializable {
 		return DateUtils.timeFormat.format(checkIn)
 				+ " - "
 				+ (checkOut != null ? DateUtils.timeFormat
-						.format(checkOut) : "...");
+						.format(checkOut) : "");
 	}
 }
