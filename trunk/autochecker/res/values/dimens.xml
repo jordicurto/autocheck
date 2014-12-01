@@ -4,6 +4,7 @@
     <dimen name="activity_horizontal_margin">10dp</dimen>
     <dimen name="activity_vertical_margin">10dp</dimen>
     <dimen name="week_day_dim">12pt</dimen>
+    <dimen name="common_dim">9pt</dimen>
     <dimen name="hours_record_dim">8pt</dimen>
     <dimen name="total_hours_dim">18pt</dimen>
     <dimen name="total_hours_day_dim">14pt</dimen>

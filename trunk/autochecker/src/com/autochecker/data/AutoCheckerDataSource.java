@@ -178,7 +178,7 @@ public class AutoCheckerDataSource {
 		Cursor cursor = database.query(
 				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_LOCATIONS, null,
-				null, null, null, null);
+				null, null, null, AutoCheckerSQLiteOpenHelper.COLUMN_ID + " asc");
 
 		List<WatchedLocation> locations = new ArrayList<WatchedLocation>();
 
@@ -314,16 +314,64 @@ public class AutoCheckerDataSource {
 		return new Pair<Date, Date>(firstRecord.getCheckIn(),
 				lastRecord.getCheckOut());
 	}
-	
-	public List<Date> getDateIntervals(WatchedLocation location, int intervalType) {
-		
+
+	public List<Date> getDateIntervals(WatchedLocation location,
+			int intervalType) {
+
 		Pair<Date, Date> limits = getLimitDates(location);
 		if (limits.first == null) {
 			return new ArrayList<Date>();
 		} else {
 			return DateUtils.getDateIntervals(limits.first,
 					limits.second != null ? limits.second : new Date(),
-					intervalType);	
+					intervalType);
 		}
+	}
+
+	public boolean isUserInWatchedLocation(WatchedLocation location) {
+
+		Cursor cursor = database.query(
+				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
+				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
+						+ location.getId() + " and "
+						+ AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT
+						+ " is null", null, null, null, null);
+
+		return (cursor.getCount() > 0);
+	}
+
+	public WatchedLocationRecord getLastWatchedLocationRecord(
+			WatchedLocation location) throws NoWatchedLocationFoundException {
+
+		Cursor cursor = database.query(
+				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
+				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
+						+ location.getId(), null, null, null,
+				AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT + " desc");
+
+		WatchedLocationRecord record = new WatchedLocationRecord();
+
+		if (cursor.moveToFirst()) {
+			setWatchedLocationRecordContents(cursor, record, location);
+		} else {
+			Log.w(TAG, "No checks found for " + location.toString());
+			cursor.close();
+			throw new NoWatchedLocationFoundException();
+		}
+
+		cursor.close();
+
+		return record;
+	}
+
+	public void removeLastWatchedLocationRecord(WatchedLocation location)
+			throws NoWatchedLocationFoundException {
+		
+		WatchedLocationRecord record = getUnCheckedWatchedLocationRecord(location);
+		database.delete(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = " + record.getId(),
+				null);
 	}
 }

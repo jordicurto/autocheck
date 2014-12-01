@@ -2,6 +2,7 @@ package com.autochecker.service;
 
 import java.util.List;
 
+import android.app.AlarmManager;
 import android.app.PendingIntent;
 import android.app.Service;
 import android.content.Context;
@@ -17,12 +18,16 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocation;
 
 public class AutoCheckerService extends Service {
 
 	public static final String LOCATION_ALERT = "ALERT_LOCATION";
 	public static final String PROX_ALERT_INTENT = "ACTION_PROXIMITY_ALERT";
+	public static final String ALARM_NOTIFICATION_DURATION = "ALARM_NOTIFICATION_DURATION";
+
+	public static final int ALARM_NOTIFICATION_DURATION_CODE = 500;
 
 	public static final int MSG_REGISTER_CLIENT = 1;
 	public static final int MSG_UNREGISTER_CLIENT = 2;
@@ -34,28 +39,37 @@ public class AutoCheckerService extends Service {
 	private AutoCheckerDataSource dataSource;
 
 	private static final long LOCATION_INTERVAL = -1;
+	private static final long INTERVAL_TWO_MINUTES = 2 * Duration.MINS_PER_MILLISECOND;
 
 	private static class IncomingHandler extends Handler {
 
 		private final String TAG = getClass().getSimpleName();
 
+		private Messenger replyMessenger = null;
+
 		@Override
 		public void handleMessage(Message msg) {
 
 			switch (msg.what) {
-			
+
 			case MSG_REGISTER_CLIENT:
-				
+
+				Log.d(TAG, "Register client");
+
 				replyMessenger = msg.replyTo;
+
 				break;
-				
+
 			case MSG_UNREGISTER_CLIENT:
 
+				Log.d(TAG, "Unregister client");
+
 				replyMessenger = null;
+
 				break;
-				
+
 			case MSG_PROX_ALERT_DONE:
-				
+
 				Log.d(TAG, "Proximity alert received from receiver...");
 
 				if (replyMessenger != null) {
@@ -68,7 +82,7 @@ public class AutoCheckerService extends Service {
 					}
 				}
 				break;
-				
+
 			default:
 				super.handleMessage(msg);
 			}
@@ -77,39 +91,31 @@ public class AutoCheckerService extends Service {
 
 	private final Messenger messenger = new Messenger(new IncomingHandler());
 
-	private static Messenger replyMessenger;
-
 	@Override
 	public IBinder onBind(Intent intent) {
 		return messenger.getBinder();
 	}
-	
+
 	@Override
 	public void onCreate() {
-		
+
 		super.onCreate();
-		
-		Log.i(TAG, "onCreate");
-		
-		if (dataSource == null) {
-			dataSource = new AutoCheckerDataSource(getApplicationContext());
-		}
-
-		if (locationManager == null) {
-			locationManager = (LocationManager) this
-					.getSystemService(Context.LOCATION_SERVICE);
-		}
-	}
-
-	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
 
 		try {
 
-			Log.i(TAG, "onStartCommand");
-			
+			Log.i(TAG, "onCreate");
+
+			if (dataSource == null) {
+				dataSource = new AutoCheckerDataSource(getApplicationContext());
+			}
+
+			if (locationManager == null) {
+				locationManager = (LocationManager) this
+						.getSystemService(Context.LOCATION_SERVICE);
+			}
+
 			dataSource.open();
-			
+
 			List<WatchedLocation> list = dataSource.getAllWatchedLocations();
 
 			for (WatchedLocation location : list) {
@@ -118,20 +124,32 @@ public class AutoCheckerService extends Service {
 
 			dataSource.close();
 
+			AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+			Log.d(TAG, "Setting alarm to launch notifications ");
+
+			alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+					INTERVAL_TWO_MINUTES,
+					AlarmManager.INTERVAL_FIFTEEN_MINUTES, PendingIntent
+							.getBroadcast(this,
+									ALARM_NOTIFICATION_DURATION_CODE,
+									new Intent(ALARM_NOTIFICATION_DURATION),
+									PendingIntent.FLAG_CANCEL_CURRENT));
+
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);
 		}
-
-		return START_STICKY;
 	}
 
 	private void addProximityAlert(WatchedLocation location) {
+
+		PendingIntent intent = getPendingIntent(location);
 
 		Log.d(TAG, "Adding proximity alert " + location.toString());
 
 		locationManager.addProximityAlert(location.getLatitude(),
 				location.getLongitude(), location.getRadius(),
-				LOCATION_INTERVAL, getPendingIntent(location));
+				LOCATION_INTERVAL, intent);
 
 	}
 

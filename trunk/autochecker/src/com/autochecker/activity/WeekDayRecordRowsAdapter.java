@@ -94,9 +94,9 @@ public class WeekDayRecordRowsAdapter extends BaseExpandableListAdapter {
         TextView textCheck = (TextView) convertView.findViewById(R.id.record_check);
         textCheck.setText(record.getCheckString());
         
-        if(record.isActive()) {
-        	convertView.setBackgroundColor(context.getResources().getColor(R.color.light_gray));
-        }
+//        if(record.isActive()) {
+//        	convertView.setBackgroundColor(context.getResources().getColor(R.color.light_gray));
+//        }
 		
 		return convertView;
 	}

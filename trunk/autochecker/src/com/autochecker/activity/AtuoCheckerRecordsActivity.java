@@ -41,7 +41,7 @@ import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.service.AutoCheckerService;
 import com.autochecker.util.DateUtils;
 
-public class AtuoCheckerActivity extends Activity implements
+public class AtuoCheckerRecordsActivity extends Activity implements
 		ActionBar.TabListener, ServiceConnection {
 
 	private final String TAG = getClass().getSimpleName();
@@ -58,12 +58,6 @@ public class AtuoCheckerActivity extends Activity implements
 
 	private static WatchedLocation location;
 	private List<Date> intervalTabDates;
-	
-	// Test GTD
-	private static final boolean testGTD = true;
-	private static final WatchedLocation wlGTD = new WatchedLocation("GTD",
-			2.2095447778701782, 41.40069010694943, 150);
-	//
 
 	private class AutoCheckerLocationRecordPageAdapter extends
 			FragmentStatePagerAdapter {
@@ -117,7 +111,7 @@ public class AtuoCheckerActivity extends Activity implements
 					DateUtils.DAY_INTERVAL_TYPE);
 
 			List<WeekDayRecordRow> rows = new ArrayList<WeekDayRecordRow>();
-			long weekWork = 0;
+			Duration weekWork = new Duration();
 
 			for (int i = 0; i < dates.size() - 1; i++) {
 
@@ -128,7 +122,7 @@ public class AtuoCheckerActivity extends Activity implements
 				if (!records.isEmpty()) {
 					WeekDayRecordRow row = new WeekDayRecordRow(dates.get(i),
 							records);
-					weekWork += row.getDuration().getMilliseconds();
+					weekWork.add(row.getDuration());
 					rows.add(row);
 				}
 			}
@@ -142,7 +136,7 @@ public class AtuoCheckerActivity extends Activity implements
 
 			TextView weekWorkText = (TextView) rootView
 					.findViewById(R.id.week_duration);
-			weekWorkText.setText(new Duration(weekWork).toString());
+			weekWorkText.setText(weekWork.toString());
 
 			return rootView;
 		}
@@ -211,10 +205,10 @@ public class AtuoCheckerActivity extends Activity implements
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_atuo_checker);
+		setContentView(R.layout.activity_atuo_checker_records);
 
 		if (dataSource == null) {
-			dataSource = new AutoCheckerDataSource(getApplicationContext());
+			dataSource = new AutoCheckerDataSource(this);
 			try {
 				dataSource.open();
 			} catch (SQLException e) {
@@ -222,19 +216,17 @@ public class AtuoCheckerActivity extends Activity implements
 			}
 		}
 
+		int locationId = getIntent().getExtras().getInt(
+				AutoCheckerLocationsActivity.LOCATION_ID);
+
 		try {
 
-			location = dataSource.getWatchedLocation("GTD");
+			location = dataSource.getWatchedLocation(locationId);
 			intervalTabDates = dataSource.getDateIntervals(location,
 					DateUtils.WEEK_INTERVAL_TYPE);
 
 		} catch (NoWatchedLocationFoundException e) {
-			if (testGTD) {
-				dataSource.insertWatchedLocation(wlGTD);
-				intervalTabDates = new ArrayList<Date>();
-			} else {
-				Log.e(TAG, "No watched location found ", e);
-			}
+			Log.e(TAG, "No watched location found ", e);
 		}
 
 		pageAdapter = new AutoCheckerLocationRecordPageAdapter(
@@ -302,7 +294,8 @@ public class AtuoCheckerActivity extends Activity implements
 
 		super.onStart();
 
-		bindService(new Intent(this, AutoCheckerService.class), this, Context.BIND_AUTO_CREATE);
+		bindService(new Intent(this, AutoCheckerService.class), this,
+				Context.BIND_AUTO_CREATE);
 	}
 
 	@Override
