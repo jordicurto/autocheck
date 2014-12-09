@@ -10,6 +10,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.listener.AutoCheckerProximityListener;
 import com.autochecker.listener.IProximityListener;
 import com.autochecker.notification.AutoCheckerNotificationManager;
@@ -55,7 +56,7 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 				proximityListener.onLeave(locationId, time, context);
 			}
 
-			notifyService(context);
+			notifyService(context, locationId);
 
 		} else if (intent.getAction().equals(
 				AutoCheckerService.ALARM_NOTIFICATION_DURATION)) {
@@ -78,10 +79,10 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 		} else if (intent.getAction().equals(
 				AutoCheckerProximityListener.ALARM_LEAVING_LOCATION)) {
 			
-			Log.d(TAG, "Alarm entering location received");
+			Log.d(TAG, "Alarm leaving location received");
 			
 			int locationId = intent.getBundleExtra(
-					AutoCheckerProximityListener.ALARM_ENTERING_LOCATION).getInt(
+					AutoCheckerProximityListener.ALARM_LEAVING_LOCATION).getInt(
 					AutoCheckerProximityListener.ALARM_LOCATION);
 			
 			proximityListener.onConfirmLeave(locationId, context);
@@ -93,10 +94,10 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 
 	}
 
-	private void notifyService(Context context) {
+	private void notifyService(Context context, int locationId) {
 
 		Message msg = Message.obtain(null,
-				AutoCheckerService.MSG_PROX_ALERT_DONE);
+				AutoCheckerService.MSG_PROX_ALERT_DONE, locationId, -1);
 
 		IBinder binder = peekService(context, new Intent(context,
 				AutoCheckerService.class));

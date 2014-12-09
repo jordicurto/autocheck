@@ -2,7 +2,6 @@ package com.autochecker.activity;
 
 import java.util.List;
 
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.database.SQLException;
@@ -14,6 +13,7 @@ import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
 import android.widget.ArrayAdapter;
+import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -22,7 +22,7 @@ import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.model.WatchedLocation;
 
-public class AutoCheckerLocationsActivity extends Activity {
+public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 
 	public static final String LOCATION_ID = "LOCATION_ID";
 
@@ -30,6 +30,8 @@ public class AutoCheckerLocationsActivity extends Activity {
 
 	private AutoCheckerDataSource dataSource;
 
+	private WatchedLocationListAdapter adapter;
+	
 	// Test GTD
 	private static final boolean testGTD = true;
 	private static final WatchedLocation wlGTD = new WatchedLocation("GTD",
@@ -37,31 +39,51 @@ public class AutoCheckerLocationsActivity extends Activity {
 
 	//
 
-	private class WatchedLocationListAdapter extends
-			ArrayAdapter<WatchedLocation> {
+	private class WatchedLocationListAdapter extends BaseAdapter {
 
-		private WatchedLocation[] locations;
+		private List<WatchedLocation> locations;
+		private Context context;
 
 		public WatchedLocationListAdapter(Context context,
-				WatchedLocation[] locations) {
-			super(context, R.layout.location_row, locations);
+				List<WatchedLocation> locations) {
+			super();
+			this.context = context;
 			this.locations = locations;
 		}
 
 		@Override
 		public View getView(int position, View convertView, ViewGroup parent) {
 
-			LayoutInflater inflater = (LayoutInflater) getContext()
+			LayoutInflater inflater = (LayoutInflater) context
 					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
 			View rowView = inflater.inflate(R.layout.location_row, parent,
 					false);
 			TextView textView = (TextView) rowView
 					.findViewById(R.id.location_name);
-			textView.setText(locations[position].getName());
+			textView.setText(locations.get(position).getName());
 			Switch statusSwitch = (Switch) rowView
 					.findViewById(R.id.location_status);
-			statusSwitch.setSelected(locations[position].isInside());
+			statusSwitch.setChecked(locations.get(position).isInside());
 			return rowView;
+		}
+
+		@Override
+		public int getCount() {
+			return locations.size();
+		}
+
+		@Override
+		public Object getItem(int position) {
+			return locations.get(position);
+		}
+
+		@Override
+		public long getItemId(int position) {
+			return locations.get(position).getId();
+		}
+		
+		public void setLocations(List<WatchedLocation> locations) {
+			this.locations = locations;
 		}
 	}
 
@@ -73,8 +95,7 @@ public class AutoCheckerLocationsActivity extends Activity {
 
 			setContentView(R.layout.activity_auto_checker_locations);
 
-			dataSource = new AutoCheckerDataSource(this);
-
+		    dataSource = new AutoCheckerDataSource(this);
 			dataSource.open();
 
 			if (testGTD && dataSource.getAllWatchedLocations().isEmpty()) {
@@ -83,11 +104,12 @@ public class AutoCheckerLocationsActivity extends Activity {
 
 			final List<WatchedLocation> locations = dataSource
 					.getAllWatchedLocations();
+			
+			adapter = new WatchedLocationListAdapter(this, locations);
 
 			ListView locationList = (ListView) findViewById(R.id.locationsList);
 			locationList.setEmptyView(findViewById(R.id.locationsEmpty));
-			locationList.setAdapter(new WatchedLocationListAdapter(this,
-					locations.toArray(new WatchedLocation[locations.size()])));
+			locationList.setAdapter(adapter);
 			locationList.setOnItemClickListener(new OnItemClickListener() {
 
 				@Override
@@ -103,8 +125,6 @@ public class AutoCheckerLocationsActivity extends Activity {
 				}
 			});
 
-			dataSource.close();
-
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);
 		}
@@ -117,7 +137,14 @@ public class AutoCheckerLocationsActivity extends Activity {
 
 		Intent intent = new Intent(this, AtuoCheckerRecordsActivity.class);
 		intent.putExtras(extra);
-		;
 		startActivity(intent);
+	}
+
+	@Override
+	protected void onReceiveProximityAlert(int locationId) {
+		final List<WatchedLocation> locations = dataSource
+				.getAllWatchedLocations();
+		adapter.setLocations(locations);
+		adapter.notifyDataSetChanged();
 	}
 }

@@ -12,6 +12,7 @@ import android.util.Log;
 
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.exception.NoWatchedLocationFoundException;
+import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
 
@@ -24,7 +25,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 	private final String TAG = getClass().getSimpleName();
 
-	private static final long INTERVAL_ACCEPT_EVENT = 2 * 60 * 1000;
+	private static final long INTERVAL_ACCEPT_EVENT = 2 * Duration.MINS_PER_MILLISECOND;
 
 	private AutoCheckerDataSource dataSource;
 
@@ -63,7 +64,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 				Log.i(TAG, "User has entering to " + location.getName());
 
 				alarmManager.set(
-						AlarmManager.ELAPSED_REALTIME,
+						AlarmManager.RTC_WAKEUP,
 						INTERVAL_ACCEPT_EVENT,
 						getPendingIntent(context, location,
 								ALARM_ENTERING_LOCATION));
@@ -99,7 +100,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 				Log.i(TAG, "Canceled leaving event to " + location.getName());
 
 				alarmManager.set(
-						AlarmManager.ELAPSED_REALTIME,
+						AlarmManager.RTC_WAKEUP,
 						INTERVAL_ACCEPT_EVENT,
 						getPendingIntent(context, location,
 								ALARM_ENTERING_LOCATION));
