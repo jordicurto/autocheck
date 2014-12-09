@@ -1,5 +1,6 @@
 package com.autochecker.service;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import android.app.AlarmManager;
@@ -45,7 +46,7 @@ public class AutoCheckerService extends Service {
 
 		private final String TAG = getClass().getSimpleName();
 
-		private Messenger replyMessenger = null;
+		private List<Messenger> replyMessenger = new ArrayList<Messenger>();
 
 		@Override
 		public void handleMessage(Message msg) {
@@ -56,7 +57,9 @@ public class AutoCheckerService extends Service {
 
 				Log.d(TAG, "Register client");
 
-				replyMessenger = msg.replyTo;
+				if (!replyMessenger.contains(msg.replyTo)) {
+					replyMessenger.add(msg.replyTo);
+				}
 
 				break;
 
@@ -64,17 +67,22 @@ public class AutoCheckerService extends Service {
 
 				Log.d(TAG, "Unregister client");
 
-				replyMessenger = null;
+				if (replyMessenger.contains(msg.replyTo)) {
+					replyMessenger.remove(msg.replyTo);
+				}
 
 				break;
 
 			case MSG_PROX_ALERT_DONE:
 
 				Log.d(TAG, "Proximity alert received from receiver...");
+				
+				Message msgAct = Message.obtain(null, MSG_PROX_ALERT_DONE, msg.arg1, msg.arg2);
 
-				if (replyMessenger != null) {
+				for (Messenger messenger : replyMessenger) {
+
 					try {
-						replyMessenger.send(msg);
+						messenger.send(msgAct);
 					} catch (RemoteException e) {
 						Log.e(TAG,
 								"Can't send proximity alert done message to activity",
@@ -128,7 +136,7 @@ public class AutoCheckerService extends Service {
 
 			Log.d(TAG, "Setting alarm to launch notifications ");
 
-			alarmManager.setRepeating(AlarmManager.ELAPSED_REALTIME,
+			alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
 					INTERVAL_TWO_MINUTES,
 					AlarmManager.INTERVAL_FIFTEEN_MINUTES, PendingIntent
 							.getBroadcast(this,

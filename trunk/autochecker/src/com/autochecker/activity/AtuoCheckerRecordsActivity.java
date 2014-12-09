@@ -24,6 +24,7 @@ import android.os.RemoteException;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
+import android.util.Pair;
 import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuItem;
@@ -41,17 +42,12 @@ import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.service.AutoCheckerService;
 import com.autochecker.util.DateUtils;
 
-public class AtuoCheckerRecordsActivity extends Activity implements
-		ActionBar.TabListener, ServiceConnection {
+public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
+		implements ActionBar.TabListener {
 
 	private final String TAG = getClass().getSimpleName();
 
 	private static AutoCheckerDataSource dataSource = null;
-	private boolean serviceBound = false;
-
-	private Messenger messengerActivity = new Messenger(
-			new AutoCheckServiceHandler());
-	private Messenger messengerService = null;
 
 	private ViewPager viewPager;
 	private AutoCheckerLocationRecordPageAdapter pageAdapter;
@@ -83,6 +79,7 @@ public class AtuoCheckerRecordsActivity extends Activity implements
 			return intervalTabDates.size() - 1;
 		}
 
+		@Override
 		public int getItemPosition(Object object) {
 			return POSITION_NONE;
 		}
@@ -142,25 +139,6 @@ public class AtuoCheckerRecordsActivity extends Activity implements
 		}
 	}
 
-	private class AutoCheckServiceHandler extends Handler {
-
-		@Override
-		public void handleMessage(Message msg) {
-
-			switch (msg.what) {
-			case AutoCheckerService.MSG_PROX_ALERT_DONE:
-				intervalTabDates.clear();
-				intervalTabDates = dataSource.getDateIntervals(location,
-						DateUtils.WEEK_INTERVAL_TYPE);
-				refreshTabs();
-				pageAdapter.notifyDataSetChanged();
-				break;
-			default:
-				super.handleMessage(msg);
-			}
-		}
-	}
-
 	@Override
 	public void onTabSelected(Tab tab, FragmentTransaction ft) {
 		viewPager.setCurrentItem(tab.getPosition());
@@ -177,79 +155,78 @@ public class AtuoCheckerRecordsActivity extends Activity implements
 	}
 
 	@Override
-	public void onServiceConnected(ComponentName className,
-			IBinder serviceBinder) {
-
-		messengerService = new Messenger(serviceBinder);
-
-		try {
-
-			Message msg = Message.obtain(null,
-					AutoCheckerService.MSG_REGISTER_CLIENT);
-			msg.replyTo = messengerActivity;
-			messengerService.send(msg);
-
-			serviceBound = true;
-
-		} catch (RemoteException e) {
-			Log.e(TAG, "Can't send register message to service ", e);
-		}
-	}
-
-	@Override
-	public void onServiceDisconnected(ComponentName className) {
-		serviceBound = false;
-	}
-
-	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
 
-		setContentView(R.layout.activity_atuo_checker_records);
-
-		if (dataSource == null) {
-			dataSource = new AutoCheckerDataSource(this);
-			try {
-				dataSource.open();
-			} catch (SQLException e) {
-				Log.e(TAG, "DataSource open exception", e);
-			}
-		}
-
-		int locationId = getIntent().getExtras().getInt(
-				AutoCheckerLocationsActivity.LOCATION_ID);
-
 		try {
 
-			location = dataSource.getWatchedLocation(locationId);
+			setContentView(R.layout.activity_atuo_checker_records);
+
+			dataSource = new AutoCheckerDataSource(this);
+
+			dataSource.open();
+
+			int locationId = getIntent().getExtras().getInt(
+					AutoCheckerLocationsActivity.LOCATION_ID);
+
+			try {
+
+				location = dataSource.getWatchedLocation(locationId);
+				intervalTabDates = dataSource.getDateIntervals(location,
+						DateUtils.WEEK_INTERVAL_TYPE);
+				
+				if (intervalTabDates.isEmpty()) {
+					Pair<Date, Date> weekLim = DateUtils.getLimitDates(DateUtils.WEEK_INTERVAL_TYPE);
+					intervalTabDates.add(weekLim.first);
+					intervalTabDates.add(weekLim.second);
+				}
+
+			} catch (NoWatchedLocationFoundException e) {
+				Log.e(TAG, "No watched location found ", e);
+			}
+
+			pageAdapter = new AutoCheckerLocationRecordPageAdapter(
+					getFragmentManager());
+
+			viewPager = (ViewPager) findViewById(R.id.pager);
+			viewPager.setAdapter(pageAdapter);
+
+			viewPager
+					.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
+						@Override
+						public void onPageSelected(int position) {
+							getActionBar().setSelectedNavigationItem(position);
+						}
+					});
+
+			final ActionBar actionBar = getActionBar();
+
+			actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
+
+			refreshTabs();
+
+			setCurrentTab();
+			
+			setTitle(location.getName());
+
+		} catch (SQLException e) {
+			Log.e(TAG, "DataSource open exception", e);
+		}
+	}
+
+	@Override
+	protected void onReceiveProximityAlert(int locationId) {
+
+		if (location.getId() == locationId) {
+
+			intervalTabDates.clear();
 			intervalTabDates = dataSource.getDateIntervals(location,
 					DateUtils.WEEK_INTERVAL_TYPE);
+			refreshTabs();
+			pageAdapter.notifyDataSetChanged();
 
-		} catch (NoWatchedLocationFoundException e) {
-			Log.e(TAG, "No watched location found ", e);
 		}
 
-		pageAdapter = new AutoCheckerLocationRecordPageAdapter(
-				getFragmentManager());
-
-		viewPager = (ViewPager) findViewById(R.id.pager);
-		viewPager.setAdapter(pageAdapter);
-
-		viewPager
-				.setOnPageChangeListener(new ViewPager.SimpleOnPageChangeListener() {
-					@Override
-					public void onPageSelected(int position) {
-						getActionBar().setSelectedNavigationItem(position);
-					}
-				});
-
-		final ActionBar actionBar = getActionBar();
-
-		actionBar.setNavigationMode(ActionBar.NAVIGATION_MODE_TABS);
-
-		refreshTabs();
-
-		setCurrentTab();
 	}
 
 	private void refreshTabs() {
@@ -287,37 +264,6 @@ public class AtuoCheckerRecordsActivity extends Activity implements
 		}
 		if (getActionBar().getTabCount() > 0)
 			getActionBar().setSelectedNavigationItem(pos);
-	}
-
-	@Override
-	protected void onStart() {
-
-		super.onStart();
-
-		bindService(new Intent(this, AutoCheckerService.class), this,
-				Context.BIND_AUTO_CREATE);
-	}
-
-	@Override
-	protected void onStop() {
-
-		super.onStop();
-
-		if (serviceBound) {
-
-			if (messengerService != null) {
-				try {
-					Message msg = Message.obtain(null,
-							AutoCheckerService.MSG_UNREGISTER_CLIENT);
-					messengerService.send(msg);
-				} catch (RemoteException e) {
-					Log.e(TAG, "Can't send unregister message to service", e);
-				}
-			}
-
-			unbindService(this);
-			serviceBound = false;
-		}
 	}
 
 	@Override

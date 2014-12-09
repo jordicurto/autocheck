@@ -14,7 +14,8 @@
         android:gravity="center_vertical"
         android:text="@string/location_name"
         android:textColor="@android:color/holo_blue_dark"
-        android:textSize="@dimen/week_day_dim" />
+        android:textSize="@dimen/week_day_dim" 
+        android:focusable="false" />
 
     <Switch
         android:id="@+id/location_status"
@@ -26,6 +27,7 @@
         android:layout_marginRight="15dp"
         android:textOff="@string/outside_location"
         android:textOn="@string/inside_location"
-        android:clickable="false" />
+        android:clickable="false" 
+        android:focusable="false" />
 
 </RelativeLayout>
