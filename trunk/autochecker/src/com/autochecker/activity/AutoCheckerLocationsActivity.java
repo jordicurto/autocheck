@@ -1,18 +1,19 @@
 package com.autochecker.activity;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import android.content.Context;
 import android.content.Intent;
 import android.database.SQLException;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.LayoutInflater;
+import android.view.Menu;
+import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.AdapterView;
 import android.widget.AdapterView.OnItemClickListener;
-import android.widget.ArrayAdapter;
 import android.widget.BaseAdapter;
 import android.widget.ListView;
 import android.widget.Switch;
@@ -21,6 +22,7 @@ import android.widget.TextView;
 import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.util.AutoCheckerConstants;
 
 public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 
@@ -30,42 +32,11 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 
 	private AutoCheckerDataSource dataSource;
 
-	private WatchedLocationListAdapter adapter;
+	private WatchedLocationListAdapter adapter = new WatchedLocationListAdapter();
 	
-	// Test GTD
-	private static final boolean testGTD = true;
-	private static final WatchedLocation wlGTD = new WatchedLocation("GTD",
-			2.2095447778701782, 41.40069010694943, 150);
-
-	//
-
+	private List<WatchedLocation> locations = new ArrayList<WatchedLocation>();
+	
 	private class WatchedLocationListAdapter extends BaseAdapter {
-
-		private List<WatchedLocation> locations;
-		private Context context;
-
-		public WatchedLocationListAdapter(Context context,
-				List<WatchedLocation> locations) {
-			super();
-			this.context = context;
-			this.locations = locations;
-		}
-
-		@Override
-		public View getView(int position, View convertView, ViewGroup parent) {
-
-			LayoutInflater inflater = (LayoutInflater) context
-					.getSystemService(Context.LAYOUT_INFLATER_SERVICE);
-			View rowView = inflater.inflate(R.layout.location_row, parent,
-					false);
-			TextView textView = (TextView) rowView
-					.findViewById(R.id.location_name);
-			textView.setText(locations.get(position).getName());
-			Switch statusSwitch = (Switch) rowView
-					.findViewById(R.id.location_status);
-			statusSwitch.setChecked(locations.get(position).isInside());
-			return rowView;
-		}
 
 		@Override
 		public int getCount() {
@@ -81,11 +52,31 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 		public long getItemId(int position) {
 			return locations.get(position).getId();
 		}
-		
-		public void setLocations(List<WatchedLocation> locations) {
-			this.locations = locations;
+
+		@Override
+		public View getView(int position, View convertView, ViewGroup parent) {
+			
+			LayoutInflater inflater = AutoCheckerLocationsActivity.this.getLayoutInflater();
+			
+			if (convertView == null) {
+	            convertView = inflater.inflate(R.layout.location_row, null);
+	        }
+			
+			TextView textView = (TextView) convertView
+					.findViewById(R.id.location_name);
+			
+			textView.setText(locations.get(position).getName());
+			
+			Switch statusSwitch = (Switch) convertView
+					.findViewById(R.id.location_status);
+			
+			statusSwitch.setChecked(locations.get(position).isInside());
+			
+			return convertView;
 		}
+		
 	}
+
 
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -98,14 +89,11 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 		    dataSource = new AutoCheckerDataSource(this);
 			dataSource.open();
 
-			if (testGTD && dataSource.getAllWatchedLocations().isEmpty()) {
-				dataSource.insertWatchedLocation(wlGTD);
+			if (AutoCheckerConstants.testGTD && dataSource.getAllWatchedLocations().isEmpty()) {
+				dataSource.insertWatchedLocation(AutoCheckerConstants.wlGTD);
 			}
 
-			final List<WatchedLocation> locations = dataSource
-					.getAllWatchedLocations();
-			
-			adapter = new WatchedLocationListAdapter(this, locations);
+			locations = dataSource.getAllWatchedLocations();
 
 			ListView locationList = (ListView) findViewById(R.id.locationsList);
 			locationList.setEmptyView(findViewById(R.id.locationsEmpty));
@@ -142,9 +130,29 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 
 	@Override
 	protected void onReceiveProximityAlert(int locationId) {
-		final List<WatchedLocation> locations = dataSource
-				.getAllWatchedLocations();
-		adapter.setLocations(locations);
+		locations = dataSource.getAllWatchedLocations();
 		adapter.notifyDataSetChanged();
+	}
+	
+	@Override
+	public boolean onCreateOptionsMenu(Menu menu) {
+
+		// Inflate the menu; this adds items to the action bar if it is present.
+		getMenuInflater().inflate(R.menu.atuo_checker, menu);
+		return true;
+	}
+
+	@Override
+	public boolean onOptionsItemSelected(MenuItem item) {
+		// Handle action bar item clicks here. The action bar will
+		// automatically handle clicks on the Home/Up button, so long
+		// as you specify a parent activity in AndroidManifest.xml.
+		int id = item.getItemId();
+		if (id == R.id.action_settings) {
+			return true;
+		} else if (id == R.id.action_add_location) {
+			return true;
+		}
+		return super.onOptionsItemSelected(item);
 	}
 }

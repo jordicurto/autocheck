@@ -20,6 +20,7 @@ import com.autochecker.data.exception.NoWatchedLocationFoundException;
 import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.util.AutoCheckerConstants;
 import com.autochecker.util.DateUtils;
 
 public class AutoCheckerNotificationManager implements INotificationManager {
@@ -39,10 +40,17 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 
 	public AutoCheckerNotificationManager() {
 		limits = new HashMap<Integer, Pair<Long, Long>>();
-		limits.put(DateUtils.DAY_INTERVAL_TYPE, new Pair<Long, Long>(
-				HOURS_PER_DAY, HOURS_PER_DAY_LIMIT));
-		limits.put(DateUtils.WEEK_INTERVAL_TYPE, new Pair<Long, Long>(
-				HOURS_PER_WEEK, null));
+		if (AutoCheckerConstants.debug) {
+			limits.put(DateUtils.DAY_INTERVAL_TYPE, new Pair<Long, Long>(
+					new Long(2 * Duration.MINS_PER_MILLISECOND), new Long(5 * Duration.MINS_PER_MILLISECOND)));
+			limits.put(DateUtils.WEEK_INTERVAL_TYPE, new Pair<Long, Long>(
+					new Long(10 * Duration.MINS_PER_MILLISECOND), null));			
+		} else {
+			limits.put(DateUtils.DAY_INTERVAL_TYPE, new Pair<Long, Long>(
+					HOURS_PER_DAY, HOURS_PER_DAY_LIMIT));
+			limits.put(DateUtils.WEEK_INTERVAL_TYPE, new Pair<Long, Long>(
+					HOURS_PER_WEEK, null));
+		}
 	}
 
 	@Override
@@ -87,7 +95,7 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 							if (duration.getMilliseconds() > entry.getValue().first) {
 
 								nManager.notify(
-										ALARM_ID,
+										location.getId(),
 										buildNotification(
 												context,
 												location.getName(),
@@ -104,6 +112,8 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 							}
 						}
 					}
+				} else {
+					nManager.cancel(location.getId());
 				}
 			}
 
@@ -118,12 +128,13 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 			int limit) {
 
 		return new NotificationCompat.Builder(context)
+				.setSmallIcon(R.drawable.ic_stat_limit_not)
 				.setContentTitle(
-						context.getString(R.string.not_title) + locName)
+						context.getString(R.string.not_title) + " " + locName)
 				.setContentText(
-						context.getString(R.string.not_content_1) + limit
-								+ context.getString(R.string.not_content_2)
-								+ locName).setAutoCancel(true).build();
+						context.getString(R.string.not_content_1) + " " + limit
+								+ " " + context.getString(R.string.not_content_2)
+								+ " " + locName).setAutoCancel(true).build();
 	}
 	
 	private void forceLeaveLocation(WatchedLocation location) {

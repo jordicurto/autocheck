@@ -10,7 +10,6 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
-import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.listener.AutoCheckerProximityListener;
 import com.autochecker.listener.IProximityListener;
 import com.autochecker.notification.AutoCheckerNotificationManager;

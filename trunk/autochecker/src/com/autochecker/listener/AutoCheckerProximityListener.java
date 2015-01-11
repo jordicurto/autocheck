@@ -15,6 +15,7 @@ import com.autochecker.data.exception.NoWatchedLocationFoundException;
 import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.util.AutoCheckerConstants;
 
 public class AutoCheckerProximityListener implements IProximityListener {
 
@@ -25,7 +26,8 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 	private final String TAG = getClass().getSimpleName();
 
-	private static final long INTERVAL_ACCEPT_EVENT = 2 * Duration.MINS_PER_MILLISECOND;
+	private static final long ACCEPT_EVENT_DELAY = 2 * Duration.MINS_PER_MILLISECOND;
+	private static final long ACCEPT_EVENT_DELAY_DGB = 30000;
 
 	private AutoCheckerDataSource dataSource;
 
@@ -63,11 +65,19 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 				Log.i(TAG, "User has entering to " + location.getName());
 
-				alarmManager.set(
-						AlarmManager.RTC_WAKEUP,
-						INTERVAL_ACCEPT_EVENT,
-						getPendingIntent(context, location,
-								ALARM_ENTERING_LOCATION));
+				if (AutoCheckerConstants.debug) {
+					alarmManager.set(
+							AlarmManager.RTC_WAKEUP,
+							(time + ACCEPT_EVENT_DELAY_DGB),
+							getPendingIntent(context, location,
+									ALARM_ENTERING_LOCATION));
+				} else {
+					alarmManager.set(
+							AlarmManager.RTC_WAKEUP,
+							(time + ACCEPT_EVENT_DELAY),
+							getPendingIntent(context, location,
+									ALARM_ENTERING_LOCATION));
+				}
 
 				Log.i(TAG, "Set alarm to validate enter to location "
 						+ location.getName());
@@ -88,7 +98,7 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 				Log.i(TAG, "Canceled leave alarm " + location.getName());
 
-				location.setStatus(WatchedLocation.ENTERING_LOCATION);
+				location.setStatus(WatchedLocation.INSIDE_LOCATION);
 				dataSource.updateWatchedLocation(location);
 
 				WatchedLocationRecord lastRecord = dataSource
@@ -98,15 +108,6 @@ public class AutoCheckerProximityListener implements IProximityListener {
 				dataSource.updateRecord(lastRecord);
 
 				Log.i(TAG, "Canceled leaving event to " + location.getName());
-
-				alarmManager.set(
-						AlarmManager.RTC_WAKEUP,
-						INTERVAL_ACCEPT_EVENT,
-						getPendingIntent(context, location,
-								ALARM_ENTERING_LOCATION));
-
-				Log.i(TAG, "Set alarm to validate enter to location "
-						+ location.getName());
 
 				break;
 			}
@@ -153,12 +154,20 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 				Log.i(TAG, "User has left " + location.getName());
 
-				alarmManager.set(
-						AlarmManager.ELAPSED_REALTIME,
-						INTERVAL_ACCEPT_EVENT,
-						getPendingIntent(context, location,
-								ALARM_LEAVING_LOCATION));
-
+				if (AutoCheckerConstants.debug) {
+					alarmManager.set(
+							AlarmManager.RTC_WAKEUP,
+							(time + ACCEPT_EVENT_DELAY_DGB),
+							getPendingIntent(context, location,
+									ALARM_LEAVING_LOCATION));
+				} else {
+					alarmManager.set(
+							AlarmManager.RTC_WAKEUP,
+							(time + ACCEPT_EVENT_DELAY),
+							getPendingIntent(context, location,
+									ALARM_LEAVING_LOCATION));
+				}
+				
 				Log.i(TAG, "Set alarm to validate leave to location "
 						+ location.getName());
 
@@ -178,21 +187,12 @@ public class AutoCheckerProximityListener implements IProximityListener {
 
 				Log.i(TAG, "Canceled enter alarm " + location.getName());
 
-				location.setStatus(WatchedLocation.LEAVING_LOCATION);
+				location.setStatus(WatchedLocation.OUTSIDE_LOCATION);
 				dataSource.updateWatchedLocation(location);
 
 				dataSource.removeLastWatchedLocationRecord(location);
 
-				Log.i(TAG, "Canceled leaving event to " + location.getName());
-
-				alarmManager.set(
-						AlarmManager.ELAPSED_REALTIME,
-						INTERVAL_ACCEPT_EVENT,
-						getPendingIntent(context, location,
-								ALARM_ENTERING_LOCATION));
-
-				Log.i(TAG, "Set alarm to validate enter to location "
-						+ location.getName());
+				Log.i(TAG, "Canceled entering event to " + location.getName());
 
 				break;
 			}

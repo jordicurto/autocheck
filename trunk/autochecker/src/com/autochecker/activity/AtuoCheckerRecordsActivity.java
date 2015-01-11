@@ -6,28 +6,16 @@ import java.util.List;
 
 import android.app.ActionBar;
 import android.app.ActionBar.Tab;
-import android.app.Activity;
 import android.app.Fragment;
 import android.app.FragmentManager;
 import android.app.FragmentTransaction;
-import android.content.ComponentName;
-import android.content.Context;
-import android.content.Intent;
-import android.content.ServiceConnection;
 import android.database.SQLException;
 import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
 import android.support.v13.app.FragmentStatePagerAdapter;
 import android.support.v4.view.ViewPager;
 import android.util.Log;
 import android.util.Pair;
 import android.view.LayoutInflater;
-import android.view.Menu;
-import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ExpandableListView;
@@ -39,7 +27,6 @@ import com.autochecker.data.exception.NoWatchedLocationFoundException;
 import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
-import com.autochecker.service.AutoCheckerService;
 import com.autochecker.util.DateUtils;
 
 public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
@@ -83,6 +70,18 @@ public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 		public int getItemPosition(Object object) {
 			return POSITION_NONE;
 		}
+		
+		@Override
+		public void notifyDataSetChanged() {
+			super.notifyDataSetChanged();
+			final FragmentTransaction ft = getFragmentManager().beginTransaction();
+			for (int i = 0; i < getCount(); i++) {
+				Fragment f = getItem(i);
+				ft.detach(f);
+				ft.attach(f);
+			}
+			ft.commit();
+		}
 	}
 
 	public static class AutoCheckerWeekRecordFragment extends Fragment {
@@ -91,7 +90,7 @@ public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 		public static final String ARG_END_DATE = "end_date";
 
 		public AutoCheckerWeekRecordFragment() {
-
+			super();
 		}
 
 		@Override
@@ -137,6 +136,8 @@ public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 
 			return rootView;
 		}
+		
+		
 	}
 
 	@Override
@@ -271,25 +272,5 @@ public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 		super.onDestroy();
 		dataSource.close();
 		dataSource = null;
-	}
-
-	@Override
-	public boolean onCreateOptionsMenu(Menu menu) {
-
-		// Inflate the menu; this adds items to the action bar if it is present.
-		getMenuInflater().inflate(R.menu.atuo_checker, menu);
-		return true;
-	}
-
-	@Override
-	public boolean onOptionsItemSelected(MenuItem item) {
-		// Handle action bar item clicks here. The action bar will
-		// automatically handle clicks on the Home/Up button, so long
-		// as you specify a parent activity in AndroidManifest.xml.
-		int id = item.getItemId();
-		if (id == R.id.action_settings) {
-			return true;
-		}
-		return super.onOptionsItemSelected(item);
 	}
 }
