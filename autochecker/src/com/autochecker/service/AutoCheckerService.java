@@ -40,7 +40,7 @@ public class AutoCheckerService extends Service {
 	private AutoCheckerDataSource dataSource;
 
 	private static final long LOCATION_INTERVAL = -1;
-	private static final long INTERVAL_TWO_MINUTES = 2 * Duration.MINS_PER_MILLISECOND;
+	private static final long TWO_MINUTES = 2 * Duration.MINS_PER_MILLISECOND;
 
 	private static class IncomingHandler extends Handler {
 
@@ -137,7 +137,7 @@ public class AutoCheckerService extends Service {
 			Log.d(TAG, "Setting alarm to launch notifications ");
 
 			alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
-					INTERVAL_TWO_MINUTES,
+					(System.currentTimeMillis() + TWO_MINUTES),
 					AlarmManager.INTERVAL_FIFTEEN_MINUTES, PendingIntent
 							.getBroadcast(this,
 									ALARM_NOTIFICATION_DURATION_CODE,
