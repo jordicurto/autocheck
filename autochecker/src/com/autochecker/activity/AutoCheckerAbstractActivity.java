@@ -32,7 +32,7 @@ public abstract class AutoCheckerAbstractActivity extends Activity implements
 		public void handleMessage(Message msg) {
 
 			switch (msg.what) {
-			case AutoCheckerService.MSG_PROX_ALERT_DONE:
+			case AutoCheckerService.MSG_GEOFENCE_TRANSITION_DONE:
 				Log.d(TAG, "Proximity alert was procesed by receiver/service ");
 				onReceiveProximityAlert(msg.arg1);
 				break;

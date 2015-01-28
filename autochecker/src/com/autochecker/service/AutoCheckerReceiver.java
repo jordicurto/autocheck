@@ -3,22 +3,26 @@ package com.autochecker.service;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.location.LocationManager;
+import android.location.Location;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.util.Log;
 
+import com.autochecker.geofence.GeofencingRegisterer;
 import com.autochecker.listener.AutoCheckerProximityListener;
 import com.autochecker.listener.IProximityListener;
 import com.autochecker.notification.AutoCheckerNotificationManager;
 import com.autochecker.notification.INotificationManager;
+import com.autochecker.util.DateUtils;
+import com.google.android.gms.location.Geofence;
+import com.google.android.gms.location.GeofencingEvent;
 
 public class AutoCheckerReceiver extends BroadcastReceiver {
 
 	private final String TAG = getClass().getSimpleName();
-	
+
 	private IProximityListener proximityListener = new AutoCheckerProximityListener();
 	private INotificationManager notificationManager = new AutoCheckerNotificationManager();
 
@@ -34,69 +38,62 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 
 			context.startService(new Intent(context, AutoCheckerService.class));
 
-			// Process a proximity alert intent
 		} else if (intent.getAction().equals(
-				AutoCheckerService.PROX_ALERT_INTENT)) {
+				GeofencingRegisterer.GEOFENCE_TRANSITION_RECEIVED)) {
 
-			Log.d(TAG, "Proximity alert received");
+			GeofencingEvent event = GeofencingEvent.fromIntent(intent);
+			
+			if (event != null) {
+				
+				if (event.hasError()) {
+					
+					Log.e(TAG, "GeoFence Error: " + event.getErrorCode());
+					
+				} else {
 
-			long time = System.currentTimeMillis();
+					Log.d(TAG, "Proximity alert received by geofencing ");
+					
+					long time = DateUtils.currentTimeMillis();
+					
+					//Location location = event.getTriggeringLocation();
 
-			boolean entered = intent.getBooleanExtra(
-					LocationManager.KEY_PROXIMITY_ENTERING, false);
+					for (Geofence fence : event.getTriggeringGeofences()) {
 
-			int locationId = intent.getBundleExtra(
-					AutoCheckerService.PROX_ALERT_INTENT).getInt(
-					AutoCheckerService.LOCATION_ALERT);
+						int locationId = new Integer(fence.getRequestId())
+								.intValue();
 
-			if (entered) {
-				proximityListener.onEnter(locationId, time, context);
-			} else {
-				proximityListener.onLeave(locationId, time, context);
+						switch (event.getGeofenceTransition()) {
+						case Geofence.GEOFENCE_TRANSITION_ENTER:
+							proximityListener
+									.onEnter(locationId, time, context);
+							break;
+						case Geofence.GEOFENCE_TRANSITION_EXIT:
+							proximityListener
+									.onLeave(locationId, time, context);
+							break;
+						default:
+							break;
+						}
+
+						notifyGeofenceTransition(context, locationId);
+					}
+				}
 			}
-
-			notifyService(context, locationId);
 
 		} else if (intent.getAction().equals(
 				AutoCheckerService.ALARM_NOTIFICATION_DURATION)) {
-			
+
 			Log.d(TAG, "Alarm notification event received");
 
 			notificationManager.notifyUser(context);
-			
-		} else if (intent.getAction().equals(
-				AutoCheckerProximityListener.ALARM_ENTERING_LOCATION)) {
-			
-			Log.d(TAG, "Alarm entering location received");
-			
-			int locationId = intent.getBundleExtra(
-					AutoCheckerProximityListener.ALARM_ENTERING_LOCATION).getInt(
-					AutoCheckerProximityListener.ALARM_LOCATION);
-			
-			proximityListener.onConfirmEnter(locationId, context);
-			
-		} else if (intent.getAction().equals(
-				AutoCheckerProximityListener.ALARM_LEAVING_LOCATION)) {
-			
-			Log.d(TAG, "Alarm leaving location received");
-			
-			int locationId = intent.getBundleExtra(
-					AutoCheckerProximityListener.ALARM_LEAVING_LOCATION).getInt(
-					AutoCheckerProximityListener.ALARM_LOCATION);
-			
-			proximityListener.onConfirmLeave(locationId, context);
 
-		} else {
-
-			Log.w(TAG, "Unrecongnized intent " + intent.toString());
 		}
-
 	}
-
-	private void notifyService(Context context, int locationId) {
+	
+	private void notifyGeofenceTransition(Context context, int locationId) {
 
 		Message msg = Message.obtain(null,
-				AutoCheckerService.MSG_PROX_ALERT_DONE, locationId, -1);
+				AutoCheckerService.MSG_GEOFENCE_TRANSITION_DONE, locationId, -1);
 
 		IBinder binder = peekService(context, new Intent(context,
 				AutoCheckerService.class));
@@ -109,7 +106,7 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 				messenger.send(msg);
 			} catch (RemoteException e) {
 				Log.e(TAG,
-						"Can't send proximity alert done message to service", e);
+						"Can't send geofence transiton message to service", e);
 			}
 
 		} else {

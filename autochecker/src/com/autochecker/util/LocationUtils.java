@@ -7,6 +7,7 @@ import com.google.android.gms.maps.model.LatLngBounds;
 public class LocationUtils {
 
 	private static final double earthRadius = 6378137.0;
+	private static final double c180 = 180.0;
 
 	public static LatLngBounds getLocationBounds(WatchedLocation location) {
 
@@ -15,16 +16,16 @@ public class LocationUtils {
 		float offset = location.getRadius();
 
 		double offsetLat = offset / earthRadius;
-		double offsetLon = offset / earthRadius
-				* Math.cos(Math.PI * centerLatitude / 180.0);
+		double offsetLon = offset / (earthRadius
+				* Math.cos(Math.PI * centerLatitude / c180));
 
-		double offsetLatDeg = ((offsetLat * 180.0) / Math.PI);
-		double offsetLonDeg = ((offsetLon * 180.0) / Math.PI);
+		double offsetLatDeg = ((offsetLat * c180) / Math.PI);
+		double offsetLonDeg = ((offsetLon * c180) / Math.PI);
 
-		LatLng southwest = new LatLng(centerLatitude + offsetLatDeg,
-				centerLongitude + offsetLonDeg);
-		LatLng northeast = new LatLng(centerLatitude - offsetLatDeg,
+		LatLng southwest = new LatLng(centerLatitude - offsetLatDeg,
 				centerLongitude - offsetLonDeg);
+		LatLng northeast = new LatLng(centerLatitude + offsetLatDeg,
+				centerLongitude + offsetLonDeg);
 
 		return new LatLngBounds(southwest, northeast);
 

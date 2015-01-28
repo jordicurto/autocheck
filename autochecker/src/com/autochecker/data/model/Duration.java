@@ -7,7 +7,7 @@ public class Duration {
 	
 	public static final int MINS_PER_HOUR = 60;
 	public static final int MINS_PER_MILLISECOND = 60 * 1000;
-	public static final int HOURS_PER_MILLISECOND = 60 * MINS_PER_MILLISECOND;
+	public static final int HOURS_PER_MILLISECOND = 60 * MINS_PER_MILLISECOND; 
 
 	private long milliseconds;
 	

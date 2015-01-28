@@ -29,7 +29,7 @@ import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.util.DateUtils;
 
-public class AtuoCheckerRecordsActivity extends AutoCheckerAbstractActivity
+public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 		implements ActionBar.TabListener {
 
 	private final String TAG = getClass().getSimpleName();
