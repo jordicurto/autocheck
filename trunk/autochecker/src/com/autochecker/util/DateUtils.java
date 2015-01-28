@@ -8,6 +8,9 @@ import java.util.Date;
 import java.util.List;
 import java.util.Locale;
 
+import com.autochecker.data.model.Duration;
+
+import android.util.Log;
 import android.util.Pair;
 
 public class DateUtils {
@@ -44,8 +47,7 @@ public class DateUtils {
 
 		if (intervalType == WEEK_INTERVAL_TYPE) {
 			startCalendar.set(Calendar.DAY_OF_WEEK,
-					startCalendar.getMinimum(Calendar.DAY_OF_WEEK)
-							+ startCalendar.getFirstDayOfWeek());
+					startCalendar.getFirstDayOfWeek());
 
 		} else if (intervalType == MONTH_INTERVAL_TYPE) {
 			startCalendar.set(Calendar.DAY_OF_MONTH,
@@ -121,8 +123,7 @@ public class DateUtils {
 		} else if (intervalType == WEEK_INTERVAL_TYPE) {
 
 			startCalendar.set(Calendar.DAY_OF_WEEK,
-					startCalendar.getMinimum(Calendar.DAY_OF_WEEK)
-							+ startCalendar.getFirstDayOfWeek());
+					startCalendar.getFirstDayOfWeek());
 		}
 
 		startCalendar.set(Calendar.HOUR_OF_DAY,
@@ -146,7 +147,7 @@ public class DateUtils {
 			endCalendar.add(
 					Calendar.DAY_OF_MONTH,
 					(endCalendar.getMaximum(Calendar.DAY_OF_WEEK) + endCalendar
-							.getFirstDayOfWeek())
+							.getFirstDayOfWeek() - 1)
 							% endCalendar.getMaximum(Calendar.DAY_OF_WEEK));
 		}
 
@@ -163,40 +164,54 @@ public class DateUtils {
 				endCalendar.getTime());
 	}
 
+	public static long currentTimeMillis() {
+		return (((System.currentTimeMillis() + (Duration.MINS_PER_MILLISECOND / 2)) / Duration.MINS_PER_MILLISECOND) * Duration.MINS_PER_MILLISECOND);
+	}
+
 	public static void runTest() {
 
 		DateFormat format = new SimpleDateFormat("dd/MM/yy HH:mm:ss");
 
 		Calendar calS = Calendar.getInstance();
-		calS.set(2014, Calendar.MARCH, 19, 11, 15, 0);
+		calS.set(2015, Calendar.JANUARY, 13, 11, 15, 0);
 		Calendar calE = Calendar.getInstance();
-		calE.set(2014, Calendar.MARCH, 22, 23, 52, 0);
+		calE.set(2015, Calendar.JANUARY, 23, 23, 52, 0);
 
-		System.out.println("DAY_INTERVAL");
-		for (Date d : DateUtils.getDateIntervals(calS.getTime(), calE.getTime(),
-				DateUtils.DAY_INTERVAL_TYPE)) {
-			System.out.println(format.format(d));
+		String TAG = "TEST";
+		Log.d(TAG, "Temps : " + currentTimeMillis());
+		Log.d(TAG, "StartOfWeek " + calS.getFirstDayOfWeek());
+
+		Log.d(TAG, "DAY_INTERVAL");
+		for (Date d : DateUtils.getDateIntervals(calS.getTime(),
+				calE.getTime(), DateUtils.DAY_INTERVAL_TYPE)) {
+			Log.d(TAG, format.format(d));
 		}
 
-		System.out.println("WEEK_INTERVAL");
-		for (Date d : DateUtils.getDateIntervals(calS.getTime(), calE.getTime(),
-				DateUtils.WEEK_INTERVAL_TYPE)) {
-			System.out.println(format.format(d));
+		Log.d(TAG, "WEEK_INTERVAL");
+		for (Date d : DateUtils.getDateIntervals(calS.getTime(),
+				calE.getTime(), DateUtils.WEEK_INTERVAL_TYPE)) {
+			Log.d(TAG, format.format(d));
 		}
 
-		System.out.println("MONTH_INTERVAL");
-		for (Date d : DateUtils.getDateIntervals(calS.getTime(), calE.getTime(),
-				DateUtils.MONTH_INTERVAL_TYPE)) {
-			System.out.println(format.format(d));
+		Log.d(TAG, "MONTH_INTERVAL");
+		for (Date d : DateUtils.getDateIntervals(calS.getTime(),
+				calE.getTime(), DateUtils.MONTH_INTERVAL_TYPE)) {
+			Log.d(TAG, format.format(d));
 		}
-		
-		Pair<Date, Date> dayDates = DateUtils.getLimitDates(DateUtils.DAY_INTERVAL_TYPE);
-		System.out.println("Day Limit: " + format.format(dayDates.first) + " - " + format.format(dayDates.second));
-		
-        Pair<Date, Date> weekDates = DateUtils.getLimitDates(DateUtils.WEEK_INTERVAL_TYPE);
-		System.out.println("Week Limit: " + format.format(weekDates.first) + " - " + format.format(weekDates.second));
-		
-        Pair<Date, Date> monthDates = DateUtils.getLimitDates(DateUtils.MONTH_INTERVAL_TYPE);
-		System.out.println("Month Limit: " + format.format(monthDates.first) + " - " + format.format(monthDates.second));
+
+		Pair<Date, Date> dayDates = DateUtils
+				.getLimitDates(DateUtils.DAY_INTERVAL_TYPE);
+		Log.d(TAG, "Day Limit: " + format.format(dayDates.first) + " - "
+				+ format.format(dayDates.second));
+
+		Pair<Date, Date> weekDates = DateUtils
+				.getLimitDates(DateUtils.WEEK_INTERVAL_TYPE);
+		Log.d(TAG, "Week Limit: " + format.format(weekDates.first) + " - "
+				+ format.format(weekDates.second));
+
+		Pair<Date, Date> monthDates = DateUtils
+				.getLimitDates(DateUtils.MONTH_INTERVAL_TYPE);
+		Log.d(TAG, "Month Limit: " + format.format(monthDates.first) + " - "
+				+ format.format(monthDates.second));
 	}
 }

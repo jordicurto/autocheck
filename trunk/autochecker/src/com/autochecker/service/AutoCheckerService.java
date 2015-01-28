@@ -9,8 +9,6 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.SQLException;
-import android.location.LocationManager;
-import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
@@ -21,32 +19,31 @@ import android.util.Log;
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.geofence.GeofencingRegisterer;
+import com.google.android.gms.location.Geofence;
 
 public class AutoCheckerService extends Service {
 
-	public static final String LOCATION_ALERT = "ALERT_LOCATION";
-	public static final String PROX_ALERT_INTENT = "ACTION_PROXIMITY_ALERT";
 	public static final String ALARM_NOTIFICATION_DURATION = "ALARM_NOTIFICATION_DURATION";
 
 	public static final int ALARM_NOTIFICATION_DURATION_CODE = 500;
 
 	public static final int MSG_REGISTER_CLIENT = 1;
 	public static final int MSG_UNREGISTER_CLIENT = 2;
-	public static final int MSG_PROX_ALERT_DONE = 3;
+	public static final int MSG_GEOFENCE_TRANSITION_DONE = 3;
 
 	private final String TAG = getClass().getSimpleName();
 
-	private LocationManager locationManager;
 	private AutoCheckerDataSource dataSource;
+	private GeofencingRegisterer geofencingRegisterer;
 
-	private static final long LOCATION_INTERVAL = -1;
-	private static final long TWO_MINUTES = 2 * Duration.MINS_PER_MILLISECOND;
+	private static final int TWO_MINUTES = 2 * Duration.MINS_PER_MILLISECOND;
+
+	private static List<Messenger> replyMessenger = new ArrayList<Messenger>();
 
 	private static class IncomingHandler extends Handler {
 
 		private final String TAG = getClass().getSimpleName();
-
-		private List<Messenger> replyMessenger = new ArrayList<Messenger>();
 
 		@Override
 		public void handleMessage(Message msg) {
@@ -73,11 +70,12 @@ public class AutoCheckerService extends Service {
 
 				break;
 
-			case MSG_PROX_ALERT_DONE:
+			case MSG_GEOFENCE_TRANSITION_DONE:
 
-				Log.d(TAG, "Proximity alert received from receiver...");
-				
-				Message msgAct = Message.obtain(null, MSG_PROX_ALERT_DONE, msg.arg1, msg.arg2);
+				Log.d(TAG, "Notifying geofence transition to clients ");
+
+				Message msgAct = Message.obtain(null,
+						MSG_GEOFENCE_TRANSITION_DONE, msg.arg1, msg.arg2);
 
 				for (Messenger messenger : replyMessenger) {
 
@@ -89,7 +87,6 @@ public class AutoCheckerService extends Service {
 								e);
 					}
 				}
-				break;
 
 			default:
 				super.handleMessage(msg);
@@ -105,73 +102,75 @@ public class AutoCheckerService extends Service {
 	}
 
 	@Override
-	public void onCreate() {
-
-		super.onCreate();
+	public int onStartCommand(Intent intent, int flags, int startId) {
 
 		try {
 
-			Log.i(TAG, "onCreate");
+			Log.i(TAG, "onStartCommand");
 
 			if (dataSource == null) {
 				dataSource = new AutoCheckerDataSource(getApplicationContext());
 			}
 
-			if (locationManager == null) {
-				locationManager = (LocationManager) this
-						.getSystemService(Context.LOCATION_SERVICE);
+			if (geofencingRegisterer == null) {
+				geofencingRegisterer = new GeofencingRegisterer(
+						getApplicationContext());
 			}
 
-			dataSource.open();
+			if (intent != null) {
 
-			List<WatchedLocation> list = dataSource.getAllWatchedLocations();
+				dataSource.open();
 
-			for (WatchedLocation location : list) {
-				addProximityAlert(location);
+				List<WatchedLocation> list = dataSource
+						.getAllWatchedLocations();
+
+				dataSource.close();
+
+				Log.d(TAG, "Creating and registering geofences ");
+
+				List<Geofence> geofenceList = createGeofences(list);
+
+				geofencingRegisterer.registerGeofences(geofenceList);
+
+				AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
+
+				Log.d(TAG, "Setting alarm to launch notifications ");
+				
+				alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, (System
+						.currentTimeMillis() + TWO_MINUTES),
+						AlarmManager.INTERVAL_FIFTEEN_MINUTES,
+						PendingIntent.getBroadcast(getApplicationContext(),
+								ALARM_NOTIFICATION_DURATION_CODE, new Intent(
+										ALARM_NOTIFICATION_DURATION),
+								PendingIntent.FLAG_CANCEL_CURRENT));
 			}
-
-			dataSource.close();
-
-			AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-			Log.d(TAG, "Setting alarm to launch notifications ");
-
-			alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
-					(System.currentTimeMillis() + TWO_MINUTES),
-					AlarmManager.INTERVAL_FIFTEEN_MINUTES, PendingIntent
-							.getBroadcast(this,
-									ALARM_NOTIFICATION_DURATION_CODE,
-									new Intent(ALARM_NOTIFICATION_DURATION),
-									PendingIntent.FLAG_CANCEL_CURRENT));
 
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);
 		}
+
+		return START_STICKY;
 	}
 
-	private void addProximityAlert(WatchedLocation location) {
-
-		PendingIntent intent = getPendingIntent(location);
-
-		Log.d(TAG, "Adding proximity alert " + location.toString());
-
-		locationManager.addProximityAlert(location.getLatitude(),
-				location.getLongitude(), location.getRadius(),
-				LOCATION_INTERVAL, intent);
-
+	private Geofence toGeofence(WatchedLocation location) {
+		return new Geofence.Builder()
+				.setCircularRegion(location.getLatitude(),
+						location.getLongitude(), location.getRadius())
+				.setExpirationDuration(Geofence.NEVER_EXPIRE)
+				.setTransitionTypes(
+						Geofence.GEOFENCE_TRANSITION_ENTER
+								| Geofence.GEOFENCE_TRANSITION_EXIT)
+				.setRequestId(new Integer(location.getId()).toString()).build();
 	}
 
-	private PendingIntent getPendingIntent(WatchedLocation location) {
+	private List<Geofence> createGeofences(List<WatchedLocation> list) {
 
-		Bundle extra = new Bundle();
+		List<Geofence> geofences = new ArrayList<Geofence>();
 
-		extra.putInt(LOCATION_ALERT, location.getId());
+		for (WatchedLocation location : list) {
+			geofences.add(toGeofence(location));
+		}
 
-		Intent intent = new Intent(PROX_ALERT_INTENT);
-		intent.putExtra(PROX_ALERT_INTENT, extra);
-
-		return PendingIntent.getBroadcast(this, location.getId(), intent,
-				PendingIntent.FLAG_CANCEL_CURRENT);
+		return geofences;
 	}
-
 }
