@@ -1,0 +1,1 @@
+Computes elapsed time where you are in a zone
