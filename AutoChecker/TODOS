@@ -1,0 +1,21 @@
+AutoChecker TODOs
+
+Coregir els events de sortida causats per un agument sobtat de la accuracy de la localitzacio, en aquest cas pot passar que la circumferencia dibuxada pel la localitzacio actual sigui mes gran que la geofence que estem tenint en compte. Crec que, per als events de sortida s'ha de validar que la distancia entre els dos punts ha de ser mes gran que la suma del radi de la geofence mes l'accuracy.
+
+Crear un IntentService i enviar intents (missatges suposo) des del BroadcastReceiever (no caldria que fos IntentService
+
+Acabar lo de mapa
+ * Definir el zoom per quan es crida per afegir una nova geofence.
+ * Fer funcionar la barra i el text edit
+ * Evitar que el gir de pantalla o altres events resetejin el mapa
+
+Crear les funcions al datasource per crear una nova geofence
+
+Millorar el servei:
+ * Atendre als events de creacio d'una geofence
+ * Atendre al event de reconfiguracio degut a una invalidacio del event de sortida.
+ * 
+
+Modificar la vista dels checks d'una geofence:
+ * Crear un grafic rosco per a reprensentar els intervals d'entrada sortida
+
