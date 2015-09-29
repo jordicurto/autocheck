@@ -1,176 +1,231 @@
 package com.autochecker.service;
 
-import java.util.ArrayList;
 import java.util.List;
 
+import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.geofence.GeofencingRegisterer;
+import com.autochecker.managers.AutoCheckerNotificationManager;
+import com.autochecker.managers.AutoCheckerTransitionManager;
+import com.autochecker.managers.AutoCheckerTransitionManager.ETransitionType;
+import com.autochecker.util.DateUtils;
+import com.autochecker.util.Duration;
+import com.autochecker.util.LocationUtils;
+import com.google.android.gms.location.Geofence;
+import com.google.android.gms.location.GeofencingEvent;
+
 import android.app.AlarmManager;
+import android.app.IntentService;
 import android.app.PendingIntent;
-import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.SQLException;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
+import android.location.Location;
 import android.util.Log;
 
-import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.model.Duration;
-import com.autochecker.data.model.WatchedLocation;
-import com.autochecker.geofence.GeofencingRegisterer;
-import com.google.android.gms.location.Geofence;
+public class AutoCheckerService extends IntentService {
 
-public class AutoCheckerService extends Service {
-
-	public static final String ALARM_NOTIFICATION_DURATION = "ALARM_NOTIFICATION_DURATION";
-
-	public static final int ALARM_NOTIFICATION_DURATION_CODE = 500;
-
-	public static final int MSG_REGISTER_CLIENT = 1;
-	public static final int MSG_UNREGISTER_CLIENT = 2;
-	public static final int MSG_GEOFENCE_TRANSITION_DONE = 3;
+	private static final long INVALID_DELAY = -1L;
+	private static final long DELAY_FOR_SUSPECT_TRANSITION = 3 * Duration.MINS_PER_MILLISECOND;
+	private static final long DELAY_FOR_STANDARD_TRANSITION = 1 * Duration.SECS_PER_MILLISECOND;
 
 	private final String TAG = getClass().getSimpleName();
 
-	private AutoCheckerDataSource dataSource;
 	private GeofencingRegisterer geofencingRegisterer;
+	private AutoCheckerTransitionManager transitionManager;
+	private AutoCheckerNotificationManager notificationManager;
 
-	private static final int TWO_MINUTES = 2 * Duration.MINS_PER_MILLISECOND;
-
-	private static List<Messenger> replyMessenger = new ArrayList<Messenger>();
-
-	private static class IncomingHandler extends Handler {
-
-		private final String TAG = getClass().getSimpleName();
-
-		@Override
-		public void handleMessage(Message msg) {
-
-			switch (msg.what) {
-
-			case MSG_REGISTER_CLIENT:
-
-				Log.d(TAG, "Register client");
-
-				if (!replyMessenger.contains(msg.replyTo)) {
-					replyMessenger.add(msg.replyTo);
-				}
-
-				break;
-
-			case MSG_UNREGISTER_CLIENT:
-
-				Log.d(TAG, "Unregister client");
-
-				if (replyMessenger.contains(msg.replyTo)) {
-					replyMessenger.remove(msg.replyTo);
-				}
-
-				break;
-
-			case MSG_GEOFENCE_TRANSITION_DONE:
-
-				Log.d(TAG, "Notifying geofence transition to clients ");
-
-				Message msgAct = Message.obtain(null,
-						MSG_GEOFENCE_TRANSITION_DONE, msg.arg1, msg.arg2);
-
-				for (Messenger messenger : replyMessenger) {
-
-					try {
-						messenger.send(msgAct);
-					} catch (RemoteException e) {
-						Log.e(TAG,
-								"Can't send proximity alert done message to activity",
-								e);
-					}
-				}
-
-			default:
-				super.handleMessage(msg);
-			}
-		}
-	}
-
-	private final Messenger messenger = new Messenger(new IncomingHandler());
-
-	@Override
-	public IBinder onBind(Intent intent) {
-		return messenger.getBinder();
+	public AutoCheckerService() {
+		super("AutoCheckerService");
 	}
 
 	@Override
-	public int onStartCommand(Intent intent, int flags, int startId) {
+	public void onCreate() {
+		super.onCreate();
+
+		Log.i(TAG, "onCreate");
+
+		geofencingRegisterer = new GeofencingRegisterer(this);
+
+		transitionManager = new AutoCheckerTransitionManager(this);
+
+		notificationManager = new AutoCheckerNotificationManager(this);
 
 		try {
 
-			Log.i(TAG, "onStartCommand");
+			Log.d(TAG, "Creating and registering geofences ");
 
-			if (dataSource == null) {
-				dataSource = new AutoCheckerDataSource(getApplicationContext());
-			}
+			List<WatchedLocation> list = transitionManager.getAllWatchedLocations();
 
-			if (geofencingRegisterer == null) {
-				geofencingRegisterer = new GeofencingRegisterer(
-						getApplicationContext());
-			}
+			geofencingRegisterer.registerGeofences(list);
 
-			if (intent != null) {
+			AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
 
-				dataSource.open();
+			Log.d(TAG, "Setting alarm to launch notifications ");
 
-				List<WatchedLocation> list = dataSource
-						.getAllWatchedLocations();
-
-				dataSource.close();
-
-				Log.d(TAG, "Creating and registering geofences ");
-
-				List<Geofence> geofenceList = createGeofences(list);
-
-				geofencingRegisterer.registerGeofences(geofenceList);
-
-				AlarmManager alarmManager = (AlarmManager) getSystemService(Context.ALARM_SERVICE);
-
-				Log.d(TAG, "Setting alarm to launch notifications ");
-				
-				alarmManager.setRepeating(AlarmManager.RTC_WAKEUP, (System
-						.currentTimeMillis() + TWO_MINUTES),
-						AlarmManager.INTERVAL_FIFTEEN_MINUTES,
-						PendingIntent.getBroadcast(getApplicationContext(),
-								ALARM_NOTIFICATION_DURATION_CODE, new Intent(
-										ALARM_NOTIFICATION_DURATION),
-								PendingIntent.FLAG_CANCEL_CURRENT));
-			}
+			alarmManager.setRepeating(AlarmManager.RTC_WAKEUP,
+					(System.currentTimeMillis() + (2 * Duration.MINS_PER_MILLISECOND)),
+					AlarmManager.INTERVAL_FIFTEEN_MINUTES,
+					PendingIntent.getService(this, 0,
+							new AutoCheckerServiceIntent(this, AutoCheckerServiceIntent.ALARM_NOTIFICATION_DURATION),
+							PendingIntent.FLAG_CANCEL_CURRENT));
 
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);
 		}
-
-		return START_STICKY;
 	}
 
-	private Geofence createGeofence(WatchedLocation location) {
-		return new Geofence.Builder()
-				.setCircularRegion(location.getLatitude(),
-						location.getLongitude(), location.getRadius())
-				.setExpirationDuration(Geofence.NEVER_EXPIRE)
-				.setTransitionTypes(
-						Geofence.GEOFENCE_TRANSITION_ENTER
-								| Geofence.GEOFENCE_TRANSITION_EXIT)
-				.setRequestId(new Integer(location.getId()).toString()).build();
-	}
+	@Override
+	protected void onHandleIntent(Intent intent) {
 
-	private List<Geofence> createGeofences(List<WatchedLocation> list) {
+		Log.i(TAG, "onHandleIntent");
 
-		List<Geofence> geofences = new ArrayList<Geofence>();
+		if (intent.getAction().equals(AutoCheckerServiceIntent.REGISTER_ALL_LOCATIONS)) {
 
-		for (WatchedLocation location : list) {
-			geofences.add(createGeofence(location));
+			Log.i(TAG, "Register all localtion should by handled by OnCreate");
+
+		} else if (intent.getAction().equals(AutoCheckerServiceIntent.REGISTER_LOCATION)) {
+
+			// TODO: Implementar el regisre d'una localitzacio
+
+		} else if (intent.getAction().equals(AutoCheckerServiceIntent.UNREGISTER_LOCATION)) {
+
+			// TODO: Implementar el desregisre d'una localitzacio
+
+		} else if (intent.getAction().equals(AutoCheckerServiceIntent.ALARM_NOTIFICATION_DURATION)) {
+
+			Log.d(TAG, "Alarm notification event received");
+
+			notificationManager.notifyUser();
+
+		} else if (intent.getAction().equals(AutoCheckerServiceIntent.GEOFENCE_TRANSITION_RECEIVED)) {
+
+			Log.d(TAG, "Proximity alert received by geofencing ");
+
+			GeofencingEvent event = GeofencingEvent.fromIntent(intent);
+
+			if (event != null) {
+
+				if (event.hasError()) {
+
+					Log.e(TAG, "GeoFence Error: " + event.getErrorCode());
+
+				} else {
+
+					long time = DateUtils.currentTimeMillis();
+
+					Location triggerLocation = event.getTriggeringLocation();
+
+					for (Geofence fence : event.getTriggeringGeofences()) {
+
+						try {
+
+							int locationId = geofencingRegisterer.getLocationId(fence);
+
+							WatchedLocation location = transitionManager.getWatchedLocation(locationId);
+
+							if (location != null && triggerLocation != null) {
+
+								ETransitionType tType = transitionManager.getScheduledTransitionType();
+
+								if (tType != null) {
+
+									switch (tType) {
+									case ENTER_TRANSITION:
+										switch (event.getGeofenceTransition()) {
+										case Geofence.GEOFENCE_TRANSITION_ENTER:
+											Log.w(TAG, "Enter transition already scheduled. Event ignored");
+											break;
+										case Geofence.GEOFENCE_TRANSITION_EXIT:
+											transitionManager.cancelScheduledRegisterTransition();
+											Log.i(TAG,
+													"Received leave transition while enter transition is scheduled. Scheduled transition cancelled");
+											break;
+										default:
+											break;
+										}
+									case LEAVE_TRANSITION:
+										switch (event.getGeofenceTransition()) {
+										case Geofence.GEOFENCE_TRANSITION_ENTER:
+											transitionManager.cancelScheduledRegisterTransition();
+											Log.i(TAG,
+													"Received enter transition while leave transition is scheduled. Scheduled transition cancelled");
+											break;
+										case Geofence.GEOFENCE_TRANSITION_EXIT:
+											Log.w(TAG, "Leave transition already scheduled. Event ignored");
+											break;
+										default:
+											break;
+										}
+									}
+
+								} else {
+
+									long delay = calculateDelayForRegisterTransition(triggerLocation, location,
+											event.getGeofenceTransition());
+
+									switch (event.getGeofenceTransition()) {
+									case Geofence.GEOFENCE_TRANSITION_ENTER:
+										transitionManager.scheduleRegisterTransition(location, time,
+												ETransitionType.ENTER_TRANSITION, delay);
+										break;
+									case Geofence.GEOFENCE_TRANSITION_EXIT:
+										transitionManager.scheduleRegisterTransition(location, time,
+												ETransitionType.LEAVE_TRANSITION, delay);
+										break;
+									default:
+										break;
+									}
+								}
+							}
+
+						} catch (NumberFormatException e) {
+							Log.e(TAG, "Can't get location id from : " + fence.getRequestId());
+						}
+					}
+				}
+			}
 		}
+	}
 
-		return geofences;
+	private long calculateDelayForRegisterTransition(Location triggerLocation, WatchedLocation wLocation,
+			int transition) {
+
+		Location location = LocationUtils.getLocationFromWatchedLocation(wLocation);
+
+		float distance = location.distanceTo(triggerLocation);
+
+		boolean intersect = distance < (wLocation.getRadius() + triggerLocation.getAccuracy());
+
+		boolean locInsideTriggerLoc = (distance + wLocation.getRadius()) < triggerLocation.getAccuracy();
+
+		switch (transition) {
+		case Geofence.GEOFENCE_TRANSITION_ENTER:
+
+			return DELAY_FOR_STANDARD_TRANSITION;
+			
+		case Geofence.GEOFENCE_TRANSITION_EXIT:
+
+			if (intersect && locInsideTriggerLoc) {
+
+				Log.d(TAG,
+						"Location is inside trigger location. Maybe accuracy has changed because location source has changed");
+
+				return DELAY_FOR_SUSPECT_TRANSITION;
+
+			} else if (intersect) {
+
+				Log.d(TAG,
+						"Location and trigger location intersects. Maybe accuracy has changed because location source has changed");
+
+				return DELAY_FOR_SUSPECT_TRANSITION;
+
+			} else {
+
+				return DELAY_FOR_STANDARD_TRANSITION;
+			}
+
+		default:
+			return INVALID_DELAY;
+		}
 	}
 }

@@ -12,29 +12,51 @@ import android.database.sqlite.SQLiteDatabase;
 import android.util.Log;
 import android.util.Pair;
 
-import com.autochecker.data.exception.NoWatchedLocationFoundException;
+import com.autochecker.data.exception.NoLocationFoundException;
+import com.autochecker.data.exception.NoRecordFoundException;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.util.DateUtils;
 
 public class AutoCheckerDataSource {
 
+	private static AutoCheckerDataSource instance;
+
 	private final String TAG = getClass().getSimpleName();
 
 	private SQLiteDatabase database;
 
 	private AutoCheckerSQLiteOpenHelper dbHelper;
-
-	public AutoCheckerDataSource(Context context) {
+	
+	private int openCounter = 0;
+	
+	private AutoCheckerDataSource(Context context) {
 		dbHelper = new AutoCheckerSQLiteOpenHelper(context);
 	}
-
-	public void open() throws SQLException {
-		database = dbHelper.getWritableDatabase();
+	
+	public static AutoCheckerDataSource getInstance(Context context) {
+		
+		if (instance == null) {
+			instance = new AutoCheckerDataSource(context);
+		}
+		
+		return instance;
 	}
 
-	public void close() {
-		dbHelper.close();
+	public synchronized void open() throws SQLException {
+		
+		openCounter++;
+		
+		if (openCounter == 1)
+			database = dbHelper.getWritableDatabase();
+	}
+
+	public synchronized void close() {
+		
+		openCounter--;
+		
+		if (openCounter == 0)
+			dbHelper.close();
 	}
 
 	private void setWatchedLocationContents(Cursor cursor,
@@ -126,7 +148,7 @@ public class AutoCheckerDataSource {
 	}
 
 	public WatchedLocation getWatchedLocation(int locationId)
-			throws NoWatchedLocationFoundException {
+			throws NoLocationFoundException {
 
 		Cursor cursor = database.query(
 				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
@@ -141,7 +163,7 @@ public class AutoCheckerDataSource {
 		} else {
 			Log.w(TAG, "No watched location are found " + locationId);
 			cursor.close();
-			throw new NoWatchedLocationFoundException();
+			throw new NoLocationFoundException(locationId);
 		}
 
 		cursor.close();
@@ -150,7 +172,7 @@ public class AutoCheckerDataSource {
 	}
 
 	public WatchedLocation getWatchedLocation(String locationName)
-			throws NoWatchedLocationFoundException {
+			throws NoLocationFoundException {
 
 		Cursor cursor = database.query(
 				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
@@ -165,7 +187,7 @@ public class AutoCheckerDataSource {
 		} else {
 			Log.w(TAG, "No watched location are found " + locationName);
 			cursor.close();
-			throw new NoWatchedLocationFoundException();
+			throw new NoLocationFoundException(locationName);
 		}
 
 		cursor.close();
@@ -216,7 +238,7 @@ public class AutoCheckerDataSource {
 	}
 
 	public WatchedLocationRecord getUnCheckedWatchedLocationRecord(
-			WatchedLocation location) throws NoWatchedLocationFoundException {
+			WatchedLocation location) throws NoRecordFoundException {
 
 		Cursor cursor = database.query(
 				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
@@ -233,7 +255,7 @@ public class AutoCheckerDataSource {
 		} else {
 			Log.w(TAG, "No opened check in found for " + location.toString());
 			cursor.close();
-			throw new NoWatchedLocationFoundException();
+			throw new NoRecordFoundException(location.getName());
 		}
 
 		cursor.close();
@@ -342,7 +364,7 @@ public class AutoCheckerDataSource {
 	}
 
 	public WatchedLocationRecord getLastWatchedLocationRecord(
-			WatchedLocation location) throws NoWatchedLocationFoundException {
+			WatchedLocation location) throws NoRecordFoundException {
 
 		Cursor cursor = database.query(
 				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
@@ -358,7 +380,7 @@ public class AutoCheckerDataSource {
 		} else {
 			Log.w(TAG, "No checks found for " + location.toString());
 			cursor.close();
-			throw new NoWatchedLocationFoundException();
+			throw new NoRecordFoundException(location.getName());
 		}
 
 		cursor.close();
@@ -367,7 +389,7 @@ public class AutoCheckerDataSource {
 	}
 
 	public void removeLastWatchedLocationRecord(WatchedLocation location)
-			throws NoWatchedLocationFoundException {
+			throws NoRecordFoundException {
 		
 		WatchedLocationRecord record = getUnCheckedWatchedLocationRecord(location);
 		database.delete(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,

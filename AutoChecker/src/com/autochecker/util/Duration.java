@@ -1,13 +1,17 @@
-package com.autochecker.data.model;
+package com.autochecker.util;
 
 import java.util.List;
 import java.util.Locale;
 
+import com.autochecker.data.model.WatchedLocationRecord;
+
 public class Duration {
 	
+	public static final int SECS_PER_MIN = 60;
 	public static final int MINS_PER_HOUR = 60;
-	public static final int MINS_PER_MILLISECOND = 60 * 1000;
-	public static final int HOURS_PER_MILLISECOND = 60 * MINS_PER_MILLISECOND; 
+	public static final int SECS_PER_MILLISECOND = 1000;
+	public static final int MINS_PER_MILLISECOND = SECS_PER_MIN * SECS_PER_MILLISECOND;
+	public static final int HOURS_PER_MILLISECOND = MINS_PER_HOUR * MINS_PER_MILLISECOND; 
 
 	private long milliseconds;
 	

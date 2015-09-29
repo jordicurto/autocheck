@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.util.Date;
 
 import com.autochecker.util.DateUtils;
+import com.autochecker.util.Duration;
 
 public class WatchedLocationRecord implements Serializable {
 

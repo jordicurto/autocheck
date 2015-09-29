@@ -1,101 +1,47 @@
 package com.autochecker.activity;
 
-import com.autochecker.service.AutoCheckerService;
+import com.autochecker.service.AutoCheckerServiceIntent;
 
 import android.app.Activity;
-import android.content.ComponentName;
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.ServiceConnection;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
+import android.content.IntentFilter;
 import android.util.Log;
 
-public abstract class AutoCheckerAbstractActivity extends Activity implements
-		ServiceConnection {
-	
+public abstract class AutoCheckerAbstractActivity extends Activity {
+
 	private final String TAG = getClass().getSimpleName();
 
-	private boolean serviceBound = false;
-
-	private Messenger messengerActivity = new Messenger(
-			new AutoCheckServiceHandler());
-	private Messenger messengerService = null;
-
-	
-	private class AutoCheckServiceHandler extends Handler {
+	//
+	protected class AutoCheckerActvityBroadcastReceiver extends BroadcastReceiver {
 
 		@Override
-		public void handleMessage(Message msg) {
+		public void onReceive(Context context, Intent intent) {
 
-			switch (msg.what) {
-			case AutoCheckerService.MSG_GEOFENCE_TRANSITION_DONE:
-				Log.d(TAG, "Proximity alert was procesed by receiver/service ");
-				onReceiveProximityAlert(msg.arg1);
-				break;
-			default:
-				super.handleMessage(msg);
-			}
+			onReceiveTransition(intent.getIntExtra(AutoCheckerServiceIntent.LOCATION_ID, -1));
 		}
+
 	}
-	
+
+	protected AutoCheckerActvityBroadcastReceiver serviceReciever = new AutoCheckerActvityBroadcastReceiver();
+
 	@Override
 	protected void onStart() {
 		super.onStart();
-		bindService(new Intent(this, AutoCheckerService.class), this,
-				Context.BIND_AUTO_CREATE);
+
+		registerReceiver(serviceReciever, new IntentFilter(AutoCheckerServiceIntent.TRANSITION_RECEIVED));
+
+		Log.i(TAG, "Activity started, Starting service...");
+		startService(new AutoCheckerServiceIntent(this, AutoCheckerServiceIntent.REGISTER_ALL_LOCATIONS));
 	}
 
 	@Override
 	protected void onStop() {
 
-		if (serviceBound) {
-
-			if (messengerService != null) {
-				try {
-					Message msg = Message.obtain(null,
-							AutoCheckerService.MSG_UNREGISTER_CLIENT);
-					msg.replyTo = messengerActivity;
-					messengerService.send(msg);
-				} catch (RemoteException e) {
-					Log.e(TAG, "Can't send unregister message to service", e);
-				}
-			}
-
-			unbindService(this);
-			serviceBound = false;
-		}
-
+		unregisterReceiver(serviceReciever);
 		super.onStop();
 	}
 
-	@Override
-	public void onServiceConnected(ComponentName className,
-			IBinder serviceBinder) {
-
-		messengerService = new Messenger(serviceBinder);
-
-		try {
-
-			Message msg = Message.obtain(null,
-					AutoCheckerService.MSG_REGISTER_CLIENT);
-			msg.replyTo = messengerActivity;
-			messengerService.send(msg);
-
-			serviceBound = true;
-
-		} catch (RemoteException e) {
-			Log.e(TAG, "Can't send register message to service ", e);
-		}
-	}
-
-	@Override
-	public void onServiceDisconnected(ComponentName className) {
-		serviceBound = false;
-	}
-	
-	protected abstract void onReceiveProximityAlert(int locationId);
+	protected abstract void onReceiveTransition(int locationId);
 }

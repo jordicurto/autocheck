@@ -1,13 +1,11 @@
 package com.autochecker.geofence;
 
+import java.util.ArrayList;
 import java.util.List;
 
-import android.app.PendingIntent;
-import android.content.Context;
-import android.content.Intent;
-import android.os.Bundle;
-import android.util.Log;
-
+import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.service.AutoCheckerServiceIntent;
+import com.autochecker.util.ContextKeeper;
 import com.google.android.gms.common.ConnectionResult;
 import com.google.android.gms.common.api.GoogleApiClient;
 import com.google.android.gms.common.api.PendingResult;
@@ -17,29 +15,50 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingRequest;
 import com.google.android.gms.location.LocationServices;
 
-public class GeofencingRegisterer implements
-		GoogleApiClient.ConnectionCallbacks,
-		GoogleApiClient.OnConnectionFailedListener {
+import android.app.PendingIntent;
+import android.content.Context;
+import android.os.Bundle;
+import android.util.Log;
 
-	public static final String GEOFENCE_TRANSITION_RECEIVED = "GEOFENCE_TRANSITION_RECEIVED";
+public class GeofencingRegisterer extends ContextKeeper
+		implements GoogleApiClient.ConnectionCallbacks, GoogleApiClient.OnConnectionFailedListener {
 
-	private Context mContext;
+	private static final String AUTOCHECKER_GEOFENCE_REQ_ID = "AUTOCHECKER_GEOFENCE_";
+
 	private GoogleApiClient mGoogleApiClient;
 	private List<Geofence> geofencesToAdd;
 	private PendingIntent mGeofencePendingIntent;
 
 	public final String TAG = getClass().getSimpleName();
-
+		
 	public GeofencingRegisterer(Context context) {
-		mContext = context;
+		super(context);
 	}
 
-	public void registerGeofences(List<Geofence> geofences) {
-		geofencesToAdd = geofences;
+	private Geofence createGeofence(WatchedLocation location) {
+		return new Geofence.Builder()
+				.setCircularRegion(location.getLatitude(), location.getLongitude(), location.getRadius())
+				.setExpirationDuration(Geofence.NEVER_EXPIRE)
+				.setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER | Geofence.GEOFENCE_TRANSITION_EXIT)
+				.setRequestId(AUTOCHECKER_GEOFENCE_REQ_ID + location.getId()).build();
+	}
 
-		mGoogleApiClient = new GoogleApiClient.Builder(mContext)
-				.addApi(LocationServices.API).addConnectionCallbacks(this)
-				.addOnConnectionFailedListener(this).build();
+	private List<Geofence> createGeofences(List<WatchedLocation> list) {
+
+		List<Geofence> geofences = new ArrayList<Geofence>();
+
+		for (WatchedLocation location : list) {
+			geofences.add(createGeofence(location));
+		}
+
+		return geofences;
+	}
+
+	public void registerGeofences(List<WatchedLocation> watchedLocationList) {
+
+		geofencesToAdd = createGeofences(watchedLocationList);
+		mGoogleApiClient = new GoogleApiClient.Builder(mContext).addApi(LocationServices.API)
+				.addConnectionCallbacks(this).addOnConnectionFailedListener(this).build();
 		mGoogleApiClient.connect();
 	}
 
@@ -47,19 +66,15 @@ public class GeofencingRegisterer implements
 	public void onConnected(Bundle bundle) {
 
 		mGeofencePendingIntent = createRequestPendingIntent();
-		GeofencingRequest request = new GeofencingRequest.Builder()
-				.addGeofences(geofencesToAdd).build();
-		PendingResult<Status> result = LocationServices.GeofencingApi
-				.addGeofences(mGoogleApiClient, request, mGeofencePendingIntent);
+		GeofencingRequest request = new GeofencingRequest.Builder().addGeofences(geofencesToAdd).build();
+		PendingResult<Status> result = LocationServices.GeofencingApi.addGeofences(mGoogleApiClient, request,
+				mGeofencePendingIntent);
 		result.setResultCallback(new ResultCallback<Status>() {
 			@Override
 			public void onResult(Status status) {
 				if (status.isSuccess()) {
 					Log.i(TAG, "Registering successful ");
 				} else {
-					if (status.hasResolution()) {
-						
-					}
 					// No recovery. Weep softly or inform the user.
 					Log.e(TAG, "Registering failed: " + status.getStatusCode());
 				}
@@ -98,10 +113,13 @@ public class GeofencingRegisterer implements
 		if (mGeofencePendingIntent != null) {
 			return mGeofencePendingIntent;
 		} else {
-			return PendingIntent
-					.getBroadcast(mContext, 0, new Intent(
-							GEOFENCE_TRANSITION_RECEIVED),
-							PendingIntent.FLAG_CANCEL_CURRENT);
+			return PendingIntent.getService(mContext, 0,
+					new AutoCheckerServiceIntent(mContext, AutoCheckerServiceIntent.GEOFENCE_TRANSITION_RECEIVED),
+					PendingIntent.FLAG_CANCEL_CURRENT);
 		}
+	}
+
+	public int getLocationId(Geofence fence) throws NumberFormatException {
+		return new Integer(fence.getRequestId().substring(AUTOCHECKER_GEOFENCE_REQ_ID.length() + 1)).intValue();
 	}
 }

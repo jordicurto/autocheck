@@ -1,10 +1,22 @@
-package com.autochecker.notification;
+package com.autochecker.managers;
 
 import java.util.Date;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Map.Entry;
+
+import com.autochecker.R;
+import com.autochecker.activity.AutoCheckerLocationsActivity;
+import com.autochecker.activity.AutoCheckerRecordsActivity;
+import com.autochecker.data.AutoCheckerDataSource;
+import com.autochecker.data.exception.NoRecordFoundException;
+import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.util.AutoCheckerConstants;
+import com.autochecker.util.ContextKeeper;
+import com.autochecker.util.DateUtils;
+import com.autochecker.util.Duration;
 
 import android.app.Notification;
 import android.app.NotificationManager;
@@ -13,22 +25,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.database.SQLException;
 import android.os.Bundle;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 import android.util.Pair;
 
-import com.autochecker.R;
-import com.autochecker.activity.AutoCheckerLocationsActivity;
-import com.autochecker.activity.AutoCheckerRecordsActivity;
-import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.exception.NoWatchedLocationFoundException;
-import com.autochecker.data.model.Duration;
-import com.autochecker.data.model.WatchedLocation;
-import com.autochecker.data.model.WatchedLocationRecord;
-import com.autochecker.util.AutoCheckerConstants;
-import com.autochecker.util.DateUtils;
-
-public class AutoCheckerNotificationManager implements INotificationManager {
+public class AutoCheckerNotificationManager extends ContextKeeper {
 
 	private static final long HOURS_PER_DAY = 8 * Duration.HOURS_PER_MILLISECOND;
 	private static final long HOURS_PER_WEEK = 40 * Duration.HOURS_PER_MILLISECOND;
@@ -38,10 +38,12 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 	private final String TAG = getClass().getSimpleName();
 
 	private Map<Integer, Pair<Long, Long>> limits;
-
+	
 	private AutoCheckerDataSource dataSource;
 
-	public AutoCheckerNotificationManager() {
+	public AutoCheckerNotificationManager(Context context) {
+		super(context);
+		dataSource = AutoCheckerDataSource.getInstance(context);
 		limits = new HashMap<Integer, Pair<Long, Long>>();
 		if (AutoCheckerConstants.debug) {
 			limits.put(DateUtils.DAY_INTERVAL_TYPE, new Pair<Long, Long>(
@@ -57,18 +59,13 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 		}
 	}
 
-	@Override
-	public void notifyUser(Context context) {
+	public void notifyUser() {
 
 		Log.d(TAG, "Notifying to user if needed");
 
 		try {
 
-			if (dataSource == null) {
-				dataSource = new AutoCheckerDataSource(context);
-			}
-
-			NotificationManager nManager = (NotificationManager) context
+			NotificationManager nManager = (NotificationManager) mContext
 					.getSystemService(Context.NOTIFICATION_SERVICE);
 
 			dataSource.open();
@@ -101,7 +98,7 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 								nManager.notify(
 										location.getId(),
 										buildNotification(
-												context,
+												mContext,
 												location.getName(),
 												location.getId(),
 												(int) (entry.getValue().first / Duration.HOURS_PER_MILLISECOND)));
@@ -139,7 +136,7 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 		Intent intent = new Intent(context, AutoCheckerRecordsActivity.class);
 		intent.putExtras(extra);
 
-		return new NotificationCompat.Builder(context)
+		return new Notification.Builder(context)
 				.setSmallIcon(R.drawable.ic_stat_limit_not)
 				.setContentTitle(
 						context.getString(R.string.not_title) + " " + locName)
@@ -168,7 +165,7 @@ public class AutoCheckerNotificationManager implements INotificationManager {
 			record.setCheckOut(new Date(DateUtils.currentTimeMillis()));
 			dataSource.updateRecord(record);
 
-		} catch (NoWatchedLocationFoundException e) {
+		} catch (NoRecordFoundException e) {
 			Log.e(TAG, "Watched Location doesn't exist ", e);
 		}
 	}

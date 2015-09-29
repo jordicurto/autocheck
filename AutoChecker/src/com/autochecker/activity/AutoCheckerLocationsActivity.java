@@ -90,8 +90,7 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 
 			setContentView(R.layout.activity_auto_checker_locations);
 
-			if (dataSource == null)
-				dataSource = new AutoCheckerDataSource(this);
+			dataSource = AutoCheckerDataSource.getInstance(this);
 			
 			dataSource.open();
 
@@ -166,7 +165,7 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 	}
 
 	@Override
-	protected void onReceiveProximityAlert(int locationId) {
+	protected void onReceiveTransition(int locationId) {
 		try {
 			
 			dataSource.open();

@@ -23,11 +23,11 @@ import android.widget.TextView;
 
 import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.exception.NoWatchedLocationFoundException;
-import com.autochecker.data.model.Duration;
+import com.autochecker.data.exception.NoLocationFoundException;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.util.DateUtils;
+import com.autochecker.util.Duration;
 
 public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 		implements ActionBar.TabListener {
@@ -163,12 +163,10 @@ public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 
 			setContentView(R.layout.activity_atuo_checker_records);
 
-			dataSource = new AutoCheckerDataSource(this);
+			dataSource = AutoCheckerDataSource.getInstance(this);
 
 			dataSource.open();
 			
-			
-
 			int locationId = getIntent().getExtras().getInt(
 					AutoCheckerLocationsActivity.LOCATION_ID);
 
@@ -184,7 +182,7 @@ public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 					intervalTabDates.add(weekLim.second);
 				}
 
-			} catch (NoWatchedLocationFoundException e) {
+			} catch (NoLocationFoundException e) {
 				Log.e(TAG, "No watched location found ", e);
 			}
 
@@ -218,7 +216,7 @@ public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 	}
 
 	@Override
-	protected void onReceiveProximityAlert(int locationId) {
+	protected void onReceiveTransition(int locationId) {
 
 		if (location.getId() == locationId) {
 

@@ -3,9 +3,9 @@ package com.autochecker.activity;
 import java.util.Date;
 import java.util.List;
 
-import com.autochecker.data.model.Duration;
 import com.autochecker.data.model.WatchedLocationRecord;
 import com.autochecker.util.DateUtils;
+import com.autochecker.util.Duration;
 
 public class WeekDayRecordRow {
 

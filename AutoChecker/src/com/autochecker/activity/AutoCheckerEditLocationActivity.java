@@ -10,7 +10,7 @@ import android.widget.SeekBar;
 
 import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
-import com.autochecker.data.exception.NoWatchedLocationFoundException;
+import com.autochecker.data.exception.NoLocationFoundException;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.util.LocationUtils;
 import com.google.android.gms.maps.CameraUpdateFactory;
@@ -49,8 +49,7 @@ public class AutoCheckerEditLocationActivity extends Activity implements
 
 			setContentView(R.layout.activity_auto_checker_edit_location);
 
-			if (dataSource == null)
-				dataSource = new AutoCheckerDataSource(this);
+			dataSource = AutoCheckerDataSource.getInstance(this);
 
 			locationToEdit = null;
 
@@ -89,7 +88,7 @@ public class AutoCheckerEditLocationActivity extends Activity implements
 				}
 			});
 
-		} catch (NoWatchedLocationFoundException e) {
+		} catch (NoLocationFoundException e) {
 			Log.e(TAG, "No watched location found ", e);
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);

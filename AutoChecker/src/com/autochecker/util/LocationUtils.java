@@ -4,6 +4,8 @@ import com.autochecker.data.model.WatchedLocation;
 import com.google.android.gms.maps.model.LatLng;
 import com.google.android.gms.maps.model.LatLngBounds;
 
+import android.location.Location;
+
 public class LocationUtils {
 
 	private static final double earthRadius = 6378137.0;
@@ -29,5 +31,12 @@ public class LocationUtils {
 
 		return new LatLngBounds(southwest, northeast);
 
+	}
+	
+	public static Location getLocationFromWatchedLocation(WatchedLocation wLocation) {
+		Location location = new Location("");
+		location.setLatitude(wLocation.getLatitude());
+		location.setLongitude(wLocation.getLongitude());
+		return location;
 	}
 }
