@@ -20,7 +20,7 @@ public class AutoCheckerReceiver extends BroadcastReceiver {
 			Log.d(TAG, "Boot completed received. Starting service");
 
 			context.startService(
-					new AutoCheckerServiceIntent(context, AutoCheckerServiceIntent.REGISTER_ALL_LOCATIONS));
+					new AutoCheckerServiceIntent(context, AutoCheckerServiceIntent.BOOT_EVENT_RECEIVED));
 
 		}
 	}

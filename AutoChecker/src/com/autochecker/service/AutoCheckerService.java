@@ -3,7 +3,8 @@ package com.autochecker.service;
 import java.util.List;
 
 import com.autochecker.data.model.WatchedLocation;
-import com.autochecker.geofence.GeofencingRegisterer;
+import com.autochecker.geofence.AutoCheckerGeofenceErrorMessage;
+import com.autochecker.geofence.AutoCheckerGeofencingRegisterer;
 import com.autochecker.managers.AutoCheckerNotificationManager;
 import com.autochecker.managers.AutoCheckerTransitionManager;
 import com.autochecker.managers.AutoCheckerTransitionManager.ETransitionType;
@@ -14,15 +15,16 @@ import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofencingEvent;
 
 import android.app.AlarmManager;
-import android.app.IntentService;
 import android.app.PendingIntent;
+import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.database.SQLException;
 import android.location.Location;
+import android.os.IBinder;
 import android.util.Log;
 
-public class AutoCheckerService extends IntentService {
+public class AutoCheckerService extends Service {
 
 	private static final long INVALID_DELAY = -1L;
 	private static final long DELAY_FOR_SUSPECT_TRANSITION = 3 * Duration.MINS_PER_MILLISECOND;
@@ -30,13 +32,9 @@ public class AutoCheckerService extends IntentService {
 
 	private final String TAG = getClass().getSimpleName();
 
-	private GeofencingRegisterer geofencingRegisterer;
+	private AutoCheckerGeofencingRegisterer geofencingRegisterer;
 	private AutoCheckerTransitionManager transitionManager;
 	private AutoCheckerNotificationManager notificationManager;
-
-	public AutoCheckerService() {
-		super("AutoCheckerService");
-	}
 
 	@Override
 	public void onCreate() {
@@ -44,12 +42,10 @@ public class AutoCheckerService extends IntentService {
 
 		Log.i(TAG, "onCreate");
 
-		geofencingRegisterer = new GeofencingRegisterer(this);
-
+		geofencingRegisterer = new AutoCheckerGeofencingRegisterer(this);
 		transitionManager = new AutoCheckerTransitionManager(this);
-
 		notificationManager = new AutoCheckerNotificationManager(this);
-
+		
 		try {
 
 			Log.d(TAG, "Creating and registering geofences ");
@@ -73,15 +69,19 @@ public class AutoCheckerService extends IntentService {
 			Log.e(TAG, "DataSource open exception", e);
 		}
 	}
-
+	
 	@Override
-	protected void onHandleIntent(Intent intent) {
+	public int onStartCommand(Intent intent, int flags, int startId) {
 
-		Log.i(TAG, "onHandleIntent");
+		Log.i(TAG, "onStartCommand");
 
-		if (intent.getAction().equals(AutoCheckerServiceIntent.REGISTER_ALL_LOCATIONS)) {
-
-			Log.i(TAG, "Register all localtion should by handled by OnCreate");
+		if (intent.getAction().equals(AutoCheckerServiceIntent.BOOT_EVENT_RECEIVED)) {
+			
+			Log.d(TAG, "Boot event recieved from broadcast receiver");
+			
+		} else if (intent.getAction().equals(AutoCheckerServiceIntent.LOCATIONS_ACTIVITY_STARTED)) {
+			
+			Log.d(TAG, "Activity started");
 
 		} else if (intent.getAction().equals(AutoCheckerServiceIntent.REGISTER_LOCATION)) {
 
@@ -107,7 +107,7 @@ public class AutoCheckerService extends IntentService {
 
 				if (event.hasError()) {
 
-					Log.e(TAG, "GeoFence Error: " + event.getErrorCode());
+					Log.e(TAG, "GeoFence Error: " + AutoCheckerGeofenceErrorMessage.getErrorString(event.getErrorCode()));
 
 				} else {
 
@@ -185,6 +185,8 @@ public class AutoCheckerService extends IntentService {
 				}
 			}
 		}
+		
+		return START_NOT_STICKY;
 	}
 
 	private long calculateDelayForRegisterTransition(Location triggerLocation, WatchedLocation wLocation,
@@ -227,5 +229,10 @@ public class AutoCheckerService extends IntentService {
 		default:
 			return INVALID_DELAY;
 		}
+	}
+
+	@Override
+	public IBinder onBind(Intent intent) {
+		return null;
 	}
 }

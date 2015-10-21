@@ -49,7 +49,7 @@ public class AutoCheckerEditLocationActivity extends Activity implements
 
 			setContentView(R.layout.activity_auto_checker_edit_location);
 
-			dataSource = AutoCheckerDataSource.getInstance(this);
+			dataSource = new AutoCheckerDataSource(this);
 
 			locationToEdit = null;
 

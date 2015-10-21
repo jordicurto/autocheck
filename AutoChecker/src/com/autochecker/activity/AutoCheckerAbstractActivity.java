@@ -31,9 +31,6 @@ public abstract class AutoCheckerAbstractActivity extends Activity {
 		super.onStart();
 
 		registerReceiver(serviceReciever, new IntentFilter(AutoCheckerServiceIntent.TRANSITION_RECEIVED));
-
-		Log.i(TAG, "Activity started, Starting service...");
-		startService(new AutoCheckerServiceIntent(this, AutoCheckerServiceIntent.REGISTER_ALL_LOCATIONS));
 	}
 
 	@Override

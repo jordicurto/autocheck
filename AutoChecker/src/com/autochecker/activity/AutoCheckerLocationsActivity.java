@@ -23,6 +23,7 @@ import android.widget.TextView;
 import com.autochecker.R;
 import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.model.WatchedLocation;
+import com.autochecker.service.AutoCheckerServiceIntent;
 import com.autochecker.util.AutoCheckerConstants;
 
 public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
@@ -90,7 +91,7 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 
 			setContentView(R.layout.activity_auto_checker_locations);
 
-			dataSource = AutoCheckerDataSource.getInstance(this);
+			dataSource = new AutoCheckerDataSource(this);
 			
 			dataSource.open();
 
@@ -136,6 +137,9 @@ public class AutoCheckerLocationsActivity extends AutoCheckerAbstractActivity {
 					return true;
 				}
 			});
+			
+			Log.i(TAG, "Activity started, Starting service...");
+			startService(new AutoCheckerServiceIntent(this, AutoCheckerServiceIntent.LOCATIONS_ACTIVITY_STARTED));	
 
 		} catch (SQLException e) {
 			Log.e(TAG, "DataSource open exception", e);

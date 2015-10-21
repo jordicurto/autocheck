@@ -20,74 +20,44 @@ import com.autochecker.util.DateUtils;
 
 public class AutoCheckerDataSource {
 
-	private static AutoCheckerDataSource instance;
-
 	private final String TAG = getClass().getSimpleName();
 
 	private SQLiteDatabase database;
 
 	private AutoCheckerSQLiteOpenHelper dbHelper;
-	
-	private int openCounter = 0;
-	
-	private AutoCheckerDataSource(Context context) {
+
+	public AutoCheckerDataSource(Context context) {
 		dbHelper = new AutoCheckerSQLiteOpenHelper(context);
 	}
-	
-	public static AutoCheckerDataSource getInstance(Context context) {
-		
-		if (instance == null) {
-			instance = new AutoCheckerDataSource(context);
-		}
-		
-		return instance;
+
+	public void open() throws SQLException {
+		database = dbHelper.getWritableDatabase();
 	}
 
-	public synchronized void open() throws SQLException {
-		
-		openCounter++;
-		
-		if (openCounter == 1)
-			database = dbHelper.getWritableDatabase();
+	public void close() {
+		dbHelper.close();
 	}
 
-	public synchronized void close() {
-		
-		openCounter--;
-		
-		if (openCounter == 0)
-			dbHelper.close();
+	private void setWatchedLocationContents(Cursor cursor, WatchedLocation location) {
+
+		location.setId(cursor.getInt(AutoCheckerSQLiteOpenHelper.COLUMN_ID_INDEX));
+		location.setName(cursor.getString(AutoCheckerSQLiteOpenHelper.COLUMN_NAME_INDEX));
+		location.setLatitude(cursor.getDouble(AutoCheckerSQLiteOpenHelper.COLUMN_LATITUDE_INDEX));
+		location.setLongitude(cursor.getDouble(AutoCheckerSQLiteOpenHelper.COLUMN_LONGITUDE_INDEX));
+		location.setRadius(cursor.getFloat(AutoCheckerSQLiteOpenHelper.COLUMN_RADIUS_INDEX));
+		location.setStatus(cursor.getInt(AutoCheckerSQLiteOpenHelper.COLUMN_STATUS_INDEX));
+
 	}
 
-	private void setWatchedLocationContents(Cursor cursor,
+	private void setWatchedLocationRecordContents(Cursor cursor, WatchedLocationRecord record,
 			WatchedLocation location) {
 
-		location.setId(cursor
-				.getInt(AutoCheckerSQLiteOpenHelper.COLUMN_ID_INDEX));
-		location.setName(cursor
-				.getString(AutoCheckerSQLiteOpenHelper.COLUMN_NAME_INDEX));
-		location.setLatitude(cursor
-				.getDouble(AutoCheckerSQLiteOpenHelper.COLUMN_LATITUDE_INDEX));
-		location.setLongitude(cursor
-				.getDouble(AutoCheckerSQLiteOpenHelper.COLUMN_LONGITUDE_INDEX));
-		location.setRadius(cursor
-				.getFloat(AutoCheckerSQLiteOpenHelper.COLUMN_RADIUS_INDEX));
-		location.setStatus(cursor
-				.getInt(AutoCheckerSQLiteOpenHelper.COLUMN_STATUS_INDEX));
-
-	}
-
-	private void setWatchedLocationRecordContents(Cursor cursor,
-			WatchedLocationRecord record, WatchedLocation location) {
-
 		record.setId(cursor.getInt(AutoCheckerSQLiteOpenHelper.COLUMN_ID_INDEX));
-		record.setCheckIn(new Date(cursor
-				.getLong(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN_INDEX)));
+		record.setCheckIn(new Date(cursor.getLong(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN_INDEX)));
 		if (cursor.isNull(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT_INDEX)) {
 			record.setCheckOut(null);
 		} else {
-			record.setCheckOut(new Date(cursor
-					.getLong(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT_INDEX)));
+			record.setCheckOut(new Date(cursor.getLong(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT_INDEX)));
 		}
 		record.setLocation(location);
 
@@ -98,32 +68,24 @@ public class AutoCheckerDataSource {
 		ContentValues values = new ContentValues();
 
 		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_NAME, location.getName());
-		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LATITUDE,
-				location.getLatitude());
-		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LONGITUDE,
-				location.getLongitude());
-		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_RADIUS,
-				location.getRadius());
-		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_STATUS,
-				location.getStatus());
+		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LATITUDE, location.getLatitude());
+		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LONGITUDE, location.getLongitude());
+		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_RADIUS, location.getRadius());
+		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_STATUS, location.getStatus());
 
 		return values;
 	}
 
-	private ContentValues watchedLocationRecordContentValues(
-			WatchedLocationRecord record) {
+	private ContentValues watchedLocationRecordContentValues(WatchedLocationRecord record) {
 
 		ContentValues values = new ContentValues();
 
-		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID, record
-				.getLocation().getId());
-		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN, record
-				.getCheckIn().getTime());
+		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID, record.getLocation().getId());
+		values.put(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN, record.getCheckIn().getTime());
 		if (record.getCheckOut() == null) {
 			values.putNull(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT);
 		} else {
-			values.put(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT, record
-					.getCheckOut().getTime());
+			values.put(AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT, record.getCheckOut().getTime());
 		}
 
 		return values;
@@ -131,15 +93,13 @@ public class AutoCheckerDataSource {
 
 	public void insertWatchedLocation(WatchedLocation location) {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_LOCATIONS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_NAME + " = \""
-						+ location.getName() + "\"", null, null, null, null);
+				AutoCheckerSQLiteOpenHelper.COLUMN_NAME + " = \"" + location.getName() + "\"", null, null, null, null);
 
 		if (!cursor.moveToFirst()) {
-			database.insert(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
-					null, watchedLocationContentValues(location));
+			database.insert(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME, null,
+					watchedLocationContentValues(location));
 		} else {
 			Log.d(TAG, "Location exists " + location.toString());
 		}
@@ -147,14 +107,11 @@ public class AutoCheckerDataSource {
 		cursor.close();
 	}
 
-	public WatchedLocation getWatchedLocation(int locationId)
-			throws NoLocationFoundException {
+	public WatchedLocation getWatchedLocation(int locationId) throws NoLocationFoundException {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_LOCATIONS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = " + locationId,
-				null, null, null, null);
+				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = " + locationId, null, null, null, null);
 
 		WatchedLocation location = new WatchedLocation();
 
@@ -171,14 +128,11 @@ public class AutoCheckerDataSource {
 		return location;
 	}
 
-	public WatchedLocation getWatchedLocation(String locationName)
-			throws NoLocationFoundException {
+	public WatchedLocation getWatchedLocation(String locationName) throws NoLocationFoundException {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_LOCATIONS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_NAME + " like '"
-						+ locationName + "'", null, null, null, null);
+				AutoCheckerSQLiteOpenHelper.COLUMN_NAME + " like '" + locationName + "'", null, null, null, null);
 
 		WatchedLocation location = new WatchedLocation();
 
@@ -197,10 +151,9 @@ public class AutoCheckerDataSource {
 
 	public List<WatchedLocation> getAllWatchedLocations() {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
-				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_LOCATIONS, null,
-				null, null, null, AutoCheckerSQLiteOpenHelper.COLUMN_ID + " asc");
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
+				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_LOCATIONS, null, null, null, null,
+				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " asc");
 
 		List<WatchedLocation> locations = new ArrayList<WatchedLocation>();
 
@@ -217,11 +170,8 @@ public class AutoCheckerDataSource {
 
 	public void updateWatchedLocation(WatchedLocation location) {
 
-		database.update(
-				AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME,
-				watchedLocationContentValues(location),
-				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = "
-						+ location.getId(), null);
+		database.update(AutoCheckerSQLiteOpenHelper.TABLE_LOCATIONS_NAME, watchedLocationContentValues(location),
+				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = " + location.getId(), null);
 	}
 
 	public void insertRecord(WatchedLocationRecord record) {
@@ -232,21 +182,17 @@ public class AutoCheckerDataSource {
 
 	public void updateRecord(WatchedLocationRecord record) {
 
-		database.update(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
-				watchedLocationRecordContentValues(record),
+		database.update(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME, watchedLocationRecordContentValues(record),
 				"id = " + record.getId(), null);
 	}
 
-	public WatchedLocationRecord getUnCheckedWatchedLocationRecord(
-			WatchedLocation location) throws NoRecordFoundException {
+	public WatchedLocationRecord getUnCheckedWatchedLocationRecord(WatchedLocation location)
+			throws NoRecordFoundException {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
-				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-						+ location.getId() + " and "
-						+ AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT
-						+ " is null", null, null, null, null);
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS, AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID
+						+ " = " + location.getId() + " and " + AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT + " is null",
+				null, null, null, null);
 
 		WatchedLocationRecord record = new WatchedLocationRecord();
 
@@ -263,14 +209,11 @@ public class AutoCheckerDataSource {
 		return record;
 	}
 
-	public List<WatchedLocationRecord> getAllWatchedLocationRecord(
-			WatchedLocation location) {
+	public List<WatchedLocationRecord> getAllWatchedLocationRecord(WatchedLocation location) {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-						+ location.getId(), null, null, null, null);
+				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = " + location.getId(), null, null, null, null);
 
 		List<WatchedLocationRecord> records = new ArrayList<WatchedLocationRecord>();
 
@@ -285,18 +228,15 @@ public class AutoCheckerDataSource {
 		return records;
 	}
 
-	public List<WatchedLocationRecord> getIntervalWatchedLocationRecord(
-			WatchedLocation location, Date start, Date end) {
+	public List<WatchedLocationRecord> getIntervalWatchedLocationRecord(WatchedLocation location, Date start,
+			Date end) {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-						+ location.getId() + " and "
-						+ AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN
-						+ " between " + start.getTime() + " and "
-						+ end.getTime(), null, null, null,
-				AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN + " asc");
+				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = " + location.getId() + " and "
+						+ AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN + " between " + start.getTime() + " and "
+						+ end.getTime(),
+				null, null, null, AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN + " asc");
 
 		List<WatchedLocationRecord> records = new ArrayList<WatchedLocationRecord>();
 
@@ -313,11 +253,9 @@ public class AutoCheckerDataSource {
 
 	public Pair<Date, Date> getLimitDates(WatchedLocation location) {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-						+ location.getId(), null, null, null,
+				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = " + location.getId(), null, null, null,
 				AutoCheckerSQLiteOpenHelper.COLUMN_CHECKIN + " asc");
 
 		WatchedLocationRecord firstRecord = new WatchedLocationRecord();
@@ -333,44 +271,35 @@ public class AutoCheckerDataSource {
 
 		cursor.close();
 
-		return new Pair<Date, Date>(firstRecord.getCheckIn(),
-				lastRecord.getCheckOut());
+		return new Pair<Date, Date>(firstRecord.getCheckIn(), lastRecord.getCheckOut());
 	}
 
-	public List<Date> getDateIntervals(WatchedLocation location,
-			int intervalType) {
+	public List<Date> getDateIntervals(WatchedLocation location, int intervalType) {
 
 		Pair<Date, Date> limits = getLimitDates(location);
 		if (limits.first == null) {
 			return new ArrayList<Date>();
 		} else {
-			return DateUtils.getDateIntervals(limits.first,
-					limits.second != null ? limits.second : new Date(),
+			return DateUtils.getDateIntervals(limits.first, limits.second != null ? limits.second : new Date(),
 					intervalType);
 		}
 	}
 
 	public boolean isUserInWatchedLocation(WatchedLocation location) {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
-				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-						+ location.getId() + " and "
-						+ AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT
-						+ " is null", null, null, null, null);
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS, AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID
+						+ " = " + location.getId() + " and " + AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT + " is null",
+				null, null, null, null);
 
 		return (cursor.getCount() > 0);
 	}
 
-	public WatchedLocationRecord getLastWatchedLocationRecord(
-			WatchedLocation location) throws NoRecordFoundException {
+	public WatchedLocationRecord getLastWatchedLocationRecord(WatchedLocation location) throws NoRecordFoundException {
 
-		Cursor cursor = database.query(
-				AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
+		Cursor cursor = database.query(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
 				AutoCheckerSQLiteOpenHelper.COLUMNS_TABLE_RECORDS,
-				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = "
-						+ location.getId(), null, null, null,
+				AutoCheckerSQLiteOpenHelper.COLUMN_LOCATION_ID + " = " + location.getId(), null, null, null,
 				AutoCheckerSQLiteOpenHelper.COLUMN_CHECKOUT + " desc");
 
 		WatchedLocationRecord record = new WatchedLocationRecord();
@@ -388,12 +317,10 @@ public class AutoCheckerDataSource {
 		return record;
 	}
 
-	public void removeLastWatchedLocationRecord(WatchedLocation location)
-			throws NoRecordFoundException {
-		
+	public void removeLastWatchedLocationRecord(WatchedLocation location) throws NoRecordFoundException {
+
 		WatchedLocationRecord record = getUnCheckedWatchedLocationRecord(location);
 		database.delete(AutoCheckerSQLiteOpenHelper.TABLE_RECORDS_NAME,
-				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = " + record.getId(),
-				null);
+				AutoCheckerSQLiteOpenHelper.COLUMN_ID + " = " + record.getId(), null);
 	}
 }

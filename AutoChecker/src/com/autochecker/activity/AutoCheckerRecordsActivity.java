@@ -163,7 +163,7 @@ public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 
 			setContentView(R.layout.activity_atuo_checker_records);
 
-			dataSource = AutoCheckerDataSource.getInstance(this);
+			dataSource = new AutoCheckerDataSource(this);
 
 			dataSource.open();
 			

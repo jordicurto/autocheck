@@ -13,6 +13,7 @@ import com.autochecker.data.AutoCheckerDataSource;
 import com.autochecker.data.exception.NoRecordFoundException;
 import com.autochecker.data.model.WatchedLocation;
 import com.autochecker.data.model.WatchedLocationRecord;
+import com.autochecker.managers.AutoCheckerTransitionManager.ETransitionType;
 import com.autochecker.util.AutoCheckerConstants;
 import com.autochecker.util.ContextKeeper;
 import com.autochecker.util.DateUtils;
@@ -34,6 +35,7 @@ public class AutoCheckerNotificationManager extends ContextKeeper {
 	private static final long HOURS_PER_WEEK = 40 * Duration.HOURS_PER_MILLISECOND;
 
 	private static final long HOURS_PER_DAY_LIMIT = 12 * Duration.HOURS_PER_MILLISECOND;
+	private static final int ERNTER_LOCATION_NOT_ID = 100;
 
 	private final String TAG = getClass().getSimpleName();
 
@@ -43,7 +45,7 @@ public class AutoCheckerNotificationManager extends ContextKeeper {
 
 	public AutoCheckerNotificationManager(Context context) {
 		super(context);
-		dataSource = AutoCheckerDataSource.getInstance(context);
+		dataSource = new AutoCheckerDataSource(context);
 		limits = new HashMap<Integer, Pair<Long, Long>>();
 		if (AutoCheckerConstants.debug) {
 			limits.put(DateUtils.DAY_INTERVAL_TYPE, new Pair<Long, Long>(
@@ -98,7 +100,6 @@ public class AutoCheckerNotificationManager extends ContextKeeper {
 								nManager.notify(
 										location.getId(),
 										buildNotification(
-												mContext,
 												location.getName(),
 												location.getId(),
 												(int) (entry.getValue().first / Duration.HOURS_PER_MILLISECOND)));
@@ -126,29 +127,43 @@ public class AutoCheckerNotificationManager extends ContextKeeper {
 			Log.e(TAG, "DataSource open exception", e);
 		}
 	}
-
-	private Notification buildNotification(Context context, String locName,
-			int locationId, int limit) {
+	
+	private Notification buildNotification(String locName, int locationId, int limit) {
 		
 		Bundle extra = new Bundle();
 		extra.putInt(AutoCheckerLocationsActivity.LOCATION_ID, locationId);
 
-		Intent intent = new Intent(context, AutoCheckerRecordsActivity.class);
+		Intent intent = new Intent(mContext, AutoCheckerRecordsActivity.class);
 		intent.putExtras(extra);
 
-		return new Notification.Builder(context)
+		return new Notification.Builder(mContext)
 				.setSmallIcon(R.drawable.ic_stat_limit_not)
 				.setContentTitle(
-						context.getString(R.string.not_title) + " " + locName)
+						mContext.getString(R.string.not_title) + " " + locName)
 				.setContentText(
-						context.getString(R.string.not_content_1) + " " + limit
+						mContext.getString(R.string.not_content_1) + " " + limit
 								+ " "
-								+ context.getString(R.string.not_content_2)
+								+ mContext.getString(R.string.not_content_2)
 								+ " " + locName)
 				.setAutoCancel(true)
 				.setContentIntent(
-						PendingIntent.getActivity(context, 0, intent,
+						PendingIntent.getActivity(mContext, 0, intent,
 								PendingIntent.FLAG_CANCEL_CURRENT)).build();
+	}
+	
+	public void notifyUserTransition(ETransitionType tType, WatchedLocation loc) {
+
+		NotificationManager nManager = (NotificationManager) mContext
+				.getSystemService(Context.NOTIFICATION_SERVICE);
+
+		Notification notificaition = new Notification.Builder(mContext)
+				.setSmallIcon(R.drawable.ic_stat_limit_not)
+				.setContentTitle("Has " + (tType == ETransitionType.ENTER_TRANSITION ? "entrat a " : "sortit de ") + loc.getName())
+				.setContentText("S'ha registrat l'")
+				.setAutoCancel(true)
+				.build();
+		
+		nManager.notify(ERNTER_LOCATION_NOT_ID, notificaition);
 	}
 
 	private void forceLeaveLocation(WatchedLocation location) {

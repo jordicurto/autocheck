@@ -151,7 +151,7 @@ public class AutoCheckerTransitionManager extends ContextKeeper {
 
 	public AutoCheckerTransitionManager(Context context) {
 		super(context);
-		dataSource = AutoCheckerDataSource.getInstance(context);
+		dataSource = new AutoCheckerDataSource(context);
 	}
 	
 	public void scheduleRegisterTransition(WatchedLocation location, long time, ETransitionType tType, long delay) {
@@ -170,7 +170,7 @@ public class AutoCheckerTransitionManager extends ContextKeeper {
 	}
 	
 	public boolean isRegisterTransitionScheduled() {
-		return (scheduledTask != null && scheduledTask.getDelay(TimeUnit.MILLISECONDS) > 0);
+		return (scheduledTask != null && !scheduledTask.isCancelled() && scheduledTask.getDelay(TimeUnit.MILLISECONDS) > 0);
 	}
 	
 	public void cancelScheduledRegisterTransition() {

@@ -14,6 +14,5 @@
     <string name="not_title">Avis d\'exces de temps a</string>
     <string name="not_content_1">Portes mes de </string>
     <string name="not_content_2"> hores a </string>
-    <string name="title_activity_auto_checker_locations">AutoCheckerLocationsActivity</string>
 
 </resources>
