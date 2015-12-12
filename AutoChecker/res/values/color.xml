@@ -2,6 +2,6 @@
 <resources>
     <color name="light_gray">#d8d8d8</color>
     <color name="primary">#009688</color>
-    <color name="primary_dark">#004d40</color>
+    <color name="primary_dark">#00796b</color>
     
 </resources>

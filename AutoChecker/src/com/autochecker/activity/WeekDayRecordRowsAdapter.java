@@ -70,11 +70,11 @@ public class WeekDayRecordRowsAdapter extends BaseExpandableListAdapter {
             convertView = inflater.inflate(R.layout.week_records_row, null);
         }
         
-        TextView textWeekDay = (TextView) convertView.findViewById(R.id.week_day);
+/*        TextView textWeekDay = (TextView) convertView.findViewById(R.id.week_day);
         textWeekDay.setText(row.getWeekDayString());
         
         TextView textDuration = (TextView) convertView.findViewById(R.id.day_record_duration);
-        textDuration.setText(row.getDurationString());
+        textDuration.setText(row.getDurationString());*/
 
 		return convertView;
 	}

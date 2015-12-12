@@ -126,9 +126,9 @@ public class AutoCheckerRecordsActivity extends AutoCheckerAbstractActivity
 			WeekDayRecordRowsAdapter adapter = new WeekDayRecordRowsAdapter(
 					getActivity(), rows);
 
-			ExpandableListView listView = (ExpandableListView) rootView
-					.findViewById(R.id.weekDayList);
-			listView.setAdapter(adapter);
+//			ExpandableListView listView = (ExpandableListView) rootView
+//					.findViewById(R.id.weekDayList);
+//			listView.setAdapter(adapter);
 
 			TextView weekWorkText = (TextView) rootView
 					.findViewById(R.id.week_duration);
