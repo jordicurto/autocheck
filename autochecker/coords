@@ -1,0 +1,1 @@
+insert into locations (name, lat, long, acc)values ('GTD', 41.40069010694943, 2.2095447778701782, 150);
